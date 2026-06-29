@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "BinderManager",
+  "project_id": "a928fd74-d9fb-4115-9ce8-9c8310d072c6"
+}
