@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box}body{margin:0}</style>
+</helmet>
+
+<div style="width:max-content;min-width:100%;min-height:100vh;box-sizing:border-box;padding:48px;background:#e7e5df;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#2a2820">
+
+  <!-- cross-tab nav -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:26px">
+    <a href="BinderManager%20Wireframes.dc.html" style="font:600 11px ui-monospace,monospace;padding:6px 11px;border-radius:7px;text-decoration:none;border:1px solid #d8d6cd;color:#6b6862;background:#fff">Hero loop · binder view + editor</a>
+    <a href="BinderManager%20Shell%2C%20Home%20%26%20Settings.dc.html" style="font:600 11px ui-monospace,monospace;padding:6px 11px;border-radius:7px;text-decoration:none;border:1px solid #d8d6cd;color:#6b6862;background:#fff">Shell · Home · Settings</a>
+    <a href="BinderManager%20Onboarding%20%26%20Import.dc.html" style="font:600 11px ui-monospace,monospace;padding:6px 11px;border-radius:7px;text-decoration:none;border:1px solid #2a2820;color:#fff;background:#2a2820">Onboarding · Import</a>
+    <a href="BinderManager%20Collection%20%26%20Decks.dc.html" style="font:600 11px ui-monospace,monospace;padding:6px 11px;border-radius:7px;text-decoration:none;border:1px solid #d8d6cd;color:#6b6862;background:#fff">Collection · Decks</a>
+    <a href="BinderManager%20Binders%20%26%20Review.dc.html" style="font:600 11px ui-monospace,monospace;padding:6px 11px;border-radius:7px;text-decoration:none;border:1px solid #d8d6cd;color:#6b6862;background:#fff">Binders · Review</a>
+  </div>
+
+  <div style="margin-bottom:40px;max-width:760px">
+    <div style="font:600 11px/1 ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:#8a877e;margin-bottom:10px">BinderManager · Wireframes · mid-fi</div>
+    <h1 style="font:700 30px/1.15 'Helvetica Neue',Helvetica,sans-serif;margin:0 0 8px">Onboarding &amp; Import flow</h1>
+    <p style="font:400 14px/1.55 'Helvetica Neue',Helvetica,sans-serif;color:#6b6862;margin:0">Screens #1, #3, #4. First-run corpus download, ManaBox CSV import (Replace/Append + review queue + commit gate, D8), and decklist import (printing-fidelity + unowned prompts, D3/D10). Everything routes through the commit gate (D7).</p>
+  </div>
+
+  <!-- ============ #1 FIRST RUN ============ -->
+  <div style="margin-bottom:14px">
+    <h2 style="font:700 19px 'Helvetica Neue',Helvetica,sans-serif;margin:0 0 3px">1 · First-run &amp; corpus download</h2>
+    <p style="font:400 13px ui-monospace,monospace;color:#8a877e;margin:0">Traces to D11, D12 (web OPFS persistence) · Welcome → Download → Storage → Done</p>
+  </div>
+  <div style="display:flex;gap:48px;align-items:flex-start;margin-bottom:64px">
+
+    <!-- first-run desktop (two states) -->
+    <div style="flex:none;width:600px">
+      <div style="font:600 12px/1 ui-monospace,monospace;color:#6b6862;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px">Desktop — centered card · download step</div>
+      <div style="background:#fff;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden;height:520px;background:repeating-linear-gradient(45deg,#f0efea,#f0efea 12px,#ecebe6 12px,#ecebe6 24px);display:flex;align-items:center;justify-content:center;padding:30px">
+        <div style="width:520px;background:#fff;border:1px solid #ececea;border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.07);padding:28px">
+          <!-- stepper -->
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:22px">
+            <span style="width:22px;height:22px;border-radius:50%;background:#2a2820;color:#fff;font:700 11px ui-monospace,monospace;display:flex;align-items:center;justify-content:center">✓</span>
+            <span style="flex:1;height:2px;background:#2a2820"></span>
+            <span style="width:22px;height:22px;border-radius:50%;background:#2a2820;color:#fff;font:700 11px ui-monospace,monospace;display:flex;align-items:center;justify-content:center">2</span>
+            <span style="flex:1;height:2px;background:#e6e4dc"></span>
+            <span style="width:22px;height:22px;border-radius:50%;background:#e6e4dc;color:#9a978d;font:700 11px ui-monospace,monospace;display:flex;align-items:center;justify-content:center">3</span>
+            <span style="flex:1;height:2px;background:#e6e4dc"></span>
+            <span style="width:22px;height:22px;border-radius:50%;background:#e6e4dc;color:#9a978d;font:700 11px ui-monospace,monospace;display:flex;align-items:center;justify-content:center">4</span>
+          </div>
+          <div style="font:600 11px ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:#9a978d;margin-bottom:8px">Step 2 · Download</div>
+          <h3 style="font:700 22px Helvetica;margin:0 0 8px">Download the card database</h3>
+          <p style="font:400 13px/1.5 Helvetica;color:#6b6862;margin:0 0 20px">BinderManager matches your collection against the full Scryfall card corpus — printings, finishes and prices — all on your device.</p>
+          <!-- download cta -->
+          <button style="width:100%;border:1px solid #2a2820;background:#2a2820;border-radius:10px;padding:14px;font:600 14px Helvetica;color:#fff;cursor:pointer;margin-bottom:8px">Download card database (~150 MB)</button>
+          <div style="font:500 11px ui-monospace,monospace;color:#9a978d;text-align:center;margin-bottom:20px">one time · Wi-Fi recommended</div>
+          <!-- progress -->
+          <div style="background:#faf9f6;border:1px solid #ececea;border-radius:10px;padding:14px">
+            <div style="display:flex;justify-content:space-between;font:600 12px Helvetica;margin-bottom:8px"><span>Downloading…</span><span style="color:#9a978d">62%</span></div>
+            <div style="height:8px;border-radius:5px;background:#e6e4dc;overflow:hidden"><div style="width:62%;height:100%;background:#2a2820"></div></div>
+            <div style="display:flex;gap:14px;font:500 10px ui-monospace,monospace;color:#bdbab2;margin-top:10px"><span style="color:#2a2820">● download</span><span>○ parse</span><span>○ index</span></div>
+          </div>
+          <button style="width:100%;margin-top:14px;border:1px solid #d8d6cd;background:#fff;border-radius:9px;padding:10px;font:600 12px Helvetica;color:#9a978d;cursor:pointer">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- first run mobile (storage consent) -->
+    <div style="flex:none;width:340px">
+      <div style="font:600 12px/1 ui-monospace,monospace;color:#6b6862;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px">Mobile — storage consent step (web)</div>
+      <div style="background:#1c1b18;border-radius:34px;padding:10px;box-shadow:0 4px 16px rgba(0,0,0,.18);width:340px">
+        <div style="background:#fff;border-radius:26px;overflow:hidden;height:640px;display:flex;flex-direction:column;padding:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px 4px;font:600 11px Helvetica"><span>9:41</span><span style="font:500 10px ui-monospace,monospace;color:#9a978d">▮▮▮ ◓</span></div>
+          <div style="flex:1;padding:24px 22px;display:flex;flex-direction:column">
+            <div style="display:flex;gap:5px;margin-bottom:24px"><span style="flex:1;height:3px;border-radius:2px;background:#2a2820"></span><span style="flex:1;height:3px;border-radius:2px;background:#2a2820"></span><span style="flex:1;height:3px;border-radius:2px;background:#2a2820"></span><span style="flex:1;height:3px;border-radius:2px;background:#e6e4dc"></span></div>
+            <div style="width:54px;height:54px;border-radius:13px;background:#f1efe9;display:flex;align-items:center;justify-content:center;font:400 24px Helvetica;color:#6b6862;margin-bottom:18px">⤓</div>
+            <h3 style="font:700 21px Helvetica;margin:0 0 10px">Keep data on this device?</h3>
+            <p style="font:400 13px/1.55 Helvetica;color:#6b6862;margin:0">Allow persistent storage so your 150 MB card database and collection aren't evicted by the browser. You can change this later in Settings.</p>
+            <div style="margin-top:auto;display:flex;flex-direction:column;gap:9px">
+              <button style="width:100%;border:1px solid #2a2820;background:#2a2820;border-radius:11px;padding:14px;font:600 14px Helvetica;color:#fff">Allow persistent storage</button>
+              <button style="width:100%;border:none;background:none;padding:8px;font:600 12px Helvetica;color:#9a978d">Continue anyway</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ #3 CSV IMPORT ============ -->
+  <div style="margin-bottom:14px">
+    <h2 style="font:700 19px 'Helvetica Neue',Helvetica,sans-serif;margin:0 0 3px">3 · Collection import (ManaBox CSV)</h2>
+    <p style="font:400 13px ui-monospace,monospace;color:#8a877e;margin:0">Traces to D8 (Replace/Append, review queue, commit gate) · two-pane with review table</p>
+  </div>
+  <div style="display:flex;gap:48px;align-items:flex-start;margin-bottom:64px">
+
+    <!-- csv desktop -->
+    <div style="flex:none;width:1080px">
+      <div style="font:600 12px/1 ui-monospace,monospace;color:#6b6862;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px">Desktop — upload + options (left) · unmatched review queue (right)</div>
+      <div style="background:#fff;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden">
+        <div style="padding:14px 18px;border-bottom:1px solid #ececea;font:700 15px Helvetica">Import collection</div>
+        <div style="display:flex">
+          <!-- left -->
+          <div style="width:380px;flex:none;border-right:1px solid #ececea;padding:18px">
+            <!-- drop zone -->
+            <div style="border:2px dashed #cfccc2;border-radius:12px;padding:24px;text-align:center;background:#faf9f6;margin-bottom:14px">
+              <div style="font:400 22px Helvetica;color:#bdbab2;margin-bottom:6px">⤓</div>
+              <div style="font:600 13px Helvetica;color:#6b6862">Drop ManaBox CSV or browse</div>
+            </div>
+            <div style="background:#f1efe9;border-radius:9px;padding:11px 13px;margin-bottom:16px;font:500 12px Helvetica;color:#6b6862">manabox_export.csv · <b>1,240 rows</b> · source detected: <b>ManaBox</b></div>
+            <!-- replace/append -->
+            <div style="font:600 11px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:7px">Import mode</div>
+            <div style="display:flex;border:1px solid #d8d6cd;border-radius:9px;overflow:hidden;margin-bottom:8px">
+              <span style="flex:1;text-align:center;padding:9px;font:600 12px Helvetica;color:#fff;background:#2a2820">Replace</span>
+              <span style="flex:1;text-align:center;padding:9px;font:600 12px Helvetica;color:#6b6862">Append</span>
+            </div>
+            <div style="font:500 11px Helvetica;color:#9a978d;margin-bottom:16px">Replace swaps out the entire ManaBox-sourced collection. Append merges into it.</div>
+            <!-- replace warning -->
+            <div style="background:#f6f1e3;border:1px solid #e8e0c9;border-radius:10px;padding:12px;margin-bottom:16px">
+              <div style="font:700 12px Helvetica;color:#7a6a3a;margin-bottom:4px">⚠ Replace warning</div>
+              <div style="font:500 11px/1.5 Helvetica;color:#7a6a3a">This replaces your ManaBox collection: <b>1,240 cards</b>, was <b>3,500</b>. Review before committing.</div>
+            </div>
+            <!-- summary -->
+            <div style="font:600 11px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:7px">Parse summary</div>
+            <div style="display:flex;gap:8px">
+              <div style="flex:1;background:#faf9f6;border:1px solid #ececea;border-radius:9px;padding:10px;text-align:center"><div style="font:700 17px Helvetica">1,228</div><div style="font:600 9px ui-monospace,monospace;color:#9a978d">MATCHED</div></div>
+              <div style="flex:1;background:#f6f1e3;border:1px solid #e8e0c9;border-radius:9px;padding:10px;text-align:center"><div style="font:700 17px Helvetica;color:#7a6a3a">12</div><div style="font:600 9px ui-monospace,monospace;color:#7a6a3a">UNMATCHED</div></div>
+            </div>
+          </div>
+          <!-- right review queue -->
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #ececea"><span style="font:700 13px Helvetica">Unmatched review queue <span style="background:#f6f1e3;color:#7a6a3a;border-radius:8px;padding:1px 7px;font:700 11px ui-monospace,monospace">12</span></span><span style="font:500 11px Helvetica;color:#9a978d">map each row, or ignore as token/proxy</span></div>
+            <!-- table head -->
+            <div style="display:grid;grid-template-columns:1.3fr 1.3fr 0.9fr;gap:12px;padding:9px 18px;background:#faf9f6;border-bottom:1px solid #ececea;font:600 10px ui-monospace,monospace;text-transform:uppercase;color:#9a978d"><span>Raw row</span><span>Suggested match</span><span>Action</span></div>
+            <!-- rows -->
+            <div style="padding:0 18px">
+              <div style="display:grid;grid-template-columns:1.3fr 1.3fr 0.9fr;gap:12px;padding:11px 0;border-bottom:1px solid #f1efe9;align-items:center"><span style="font:500 12px ui-monospace,monospace;color:#3a382f">"Ragavn Nimble Plndr"</span><span style="font:500 12px Helvetica;color:#6b6862">Ragavan, Nimble Pilf… <span style="color:#bdbab2">(MH2)</span></span><div style="display:flex;gap:5px"><button style="border:1px solid #2a2820;background:#2a2820;color:#fff;border-radius:6px;padding:4px 9px;font:600 10px Helvetica;cursor:pointer">Map</button><button style="border:1px solid #d8d6cd;background:#fff;border-radius:6px;padding:4px 8px;font:600 10px Helvetica;color:#9a978d;cursor:pointer">Ignore</button></div></div>
+              <div style="display:grid;grid-template-columns:1.3fr 1.3fr 0.9fr;gap:12px;padding:11px 0;border-bottom:1px solid #f1efe9;align-items:center"><span style="font:500 12px ui-monospace,monospace;color:#3a382f">"Forest token"</span><span style="font:500 12px Helvetica;color:#bdbab2">no match</span><div style="display:flex;gap:5px"><button style="border:1px solid #d8d6cd;background:#fff;border-radius:6px;padding:4px 9px;font:600 10px Helvetica;color:#6b6862;cursor:pointer">Search…</button><button style="border:1px solid #2a2820;background:#2a2820;color:#fff;border-radius:6px;padding:4px 8px;font:600 10px Helvetica;cursor:pointer">Ignore</button></div></div>
+              <div style="display:grid;grid-template-columns:1.3fr 1.3fr 0.9fr;gap:12px;padding:11px 0;border-bottom:1px solid #f1efe9;align-items:center"><span style="font:500 12px ui-monospace,monospace;color:#3a382f">"Lightning Bolt PROXY"</span><span style="font:500 12px Helvetica;color:#6b6862">Lightning Bolt <span style="color:#bdbab2">(2X2)</span></span><div style="display:flex;gap:5px"><button style="border:1px solid #d8d6cd;background:#fff;border-radius:6px;padding:4px 9px;font:600 10px Helvetica;color:#6b6862;cursor:pointer">Search…</button><button style="border:1px solid #d8d6cd;background:#fff;border-radius:6px;padding:4px 8px;font:600 10px Helvetica;color:#9a978d;cursor:pointer">Ignore</button></div></div>
+              <div style="display:grid;grid-template-columns:1.3fr 1.3fr 0.9fr;gap:12px;padding:11px 0;border-bottom:1px solid #f1efe9;align-items:center;opacity:.5"><span style="font:500 12px ui-monospace,monospace;color:#3a382f">"Snapcastr Mage"</span><span style="font:500 12px Helvetica;color:#6b6862">Snapcaster Mage</span><span style="font:500 11px ui-monospace,monospace;color:#9a978d">+ 9 more…</span></div>
+            </div>
+            <!-- sticky action bar -->
+            <div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-top:1px solid #ececea;background:#faf9f6">
+              <span style="font:500 12px Helvetica;color:#9a978d">Nothing is saved until you commit (D7)</span>
+              <div style="display:flex;gap:8px"><button style="border:1px solid #d8d6cd;background:#fff;border-radius:8px;padding:9px 14px;font:600 12px Helvetica;color:#6b6862;cursor:pointer">Cancel</button><button style="border:1px solid #2a2820;background:#2a2820;border-radius:8px;padding:9px 16px;font:600 12px Helvetica;color:#fff;cursor:pointer">Review changes → Commit</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- csv mobile -->
+    <div style="flex:none;width:340px">
+      <div style="font:600 12px/1 ui-monospace,monospace;color:#6b6862;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px">Mobile — wizard step (Replace/Append)</div>
+      <div style="background:#1c1b18;border-radius:34px;padding:10px;box-shadow:0 4px 16px rgba(0,0,0,.18);width:340px">
+        <div style="background:#fff;border-radius:26px;overflow:hidden;height:640px;display:flex;flex-direction:column">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px 4px;font:600 11px Helvetica"><span>9:41</span><span style="font:500 10px ui-monospace,monospace;color:#9a978d">▮▮▮ ◓</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #ececea"><span style="font:400 17px Helvetica;color:#6b6862">‹</span><span style="font:700 14px Helvetica">Import · step 2 of 5</span><span style="width:14px"></span></div>
+          <div style="flex:1;padding:18px 16px;overflow:hidden">
+            <div style="background:#f1efe9;border-radius:9px;padding:10px 12px;margin-bottom:18px;font:500 12px Helvetica;color:#6b6862">manabox_export.csv · 1,240 rows</div>
+            <div style="font:700 16px Helvetica;margin-bottom:12px">Replace or append?</div>
+            <div style="border:2px solid #2a2820;border-radius:11px;padding:14px;margin-bottom:10px"><div style="font:700 13px Helvetica;margin-bottom:3px">Replace</div><div style="font:500 11px Helvetica;color:#9a978d">Swap out the entire ManaBox collection (was 3,500 cards)</div></div>
+            <div style="border:1px solid #d8d6cd;border-radius:11px;padding:14px"><div style="font:700 13px Helvetica;margin-bottom:3px">Append</div><div style="font:500 11px Helvetica;color:#9a978d">Merge these rows into your current collection</div></div>
+            <div style="background:#f6f1e3;border:1px solid #e8e0c9;border-radius:10px;padding:12px;margin-top:16px;font:500 11px/1.5 Helvetica;color:#7a6a3a">⚠ Replace removes 3,500 existing cards. 12 rows unmatched — you'll review them next.</div>
+          </div>
+          <div style="padding:12px 16px 16px;border-top:1px solid #ececea"><button style="width:100%;border:1px solid #2a2820;background:#2a2820;border-radius:11px;padding:13px;font:600 14px Helvetica;color:#fff">Next · review unmatched</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ #4 DECKLIST IMPORT ============ -->
+  <div style="margin-bottom:14px">
+    <h2 style="font:700 19px 'Helvetica Neue',Helvetica,sans-serif;margin:0 0 3px">4 · Decklist import</h2>
+    <p style="font:400 13px ui-monospace,monospace;color:#8a877e;margin:0">Traces to D3 (assembled/shared, printing-fidelity), D10 (text format, unowned prompt)</p>
+  </div>
+  <div style="display:flex;gap:48px;align-items:flex-start;margin-bottom:48px">
+
+    <!-- decklist desktop -->
+    <div style="flex:none;width:1080px">
+      <div style="font:600 12px/1 ui-monospace,monospace;color:#6b6862;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px">Desktop — paste + metadata (left) · live parse preview (right) with unowned prompt</div>
+      <div style="background:#fff;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden;position:relative">
+        <div style="padding:14px 18px;border-bottom:1px solid #ececea;font:700 15px Helvetica">Import deck</div>
+        <div style="display:flex">
+          <!-- left -->
+          <div style="width:420px;flex:none;border-right:1px solid #ececea;padding:18px">
+            <div style="display:flex;gap:10px;margin-bottom:14px">
+              <div style="flex:1"><div style="font:500 11px Helvetica;color:#9a978d;margin-bottom:5px">Deck name</div><div style="border:1px solid #d8d6cd;border-radius:8px;padding:9px 11px;font:600 13px Helvetica">Mono-Red Aggro</div></div>
+              <div style="width:120px"><div style="font:500 11px Helvetica;color:#9a978d;margin-bottom:5px">Format</div><div style="border:1px solid #d8d6cd;border-radius:8px;padding:9px 11px;font:600 13px Helvetica;color:#6b6862">Modern ▾</div></div>
+            </div>
+            <div style="font:500 11px Helvetica;color:#9a978d;margin-bottom:5px">Deck type</div>
+            <div style="display:flex;border:1px solid #d8d6cd;border-radius:8px;overflow:hidden;margin-bottom:14px">
+              <span style="flex:1;text-align:center;padding:8px;font:600 12px Helvetica;color:#fff;background:#2a2820">Assembled</span>
+              <span style="flex:1;text-align:center;padding:8px;font:600 12px Helvetica;color:#6b6862">Shared</span>
+            </div>
+            <div style="font:500 11px Helvetica;color:#9a978d;margin-bottom:5px">Paste decklist</div>
+            <div style="border:1px solid #d8d6cd;border-radius:8px;padding:12px;background:#faf9f6;height:230px;font:500 12px/1.7 ui-monospace,monospace;color:#3a382f;overflow:hidden">
+              4 Lightning Bolt (M10) 146<br>4 Goblin Guide (ZEN) 145<br>4 Monastery Swiftspear<br>2 Ragavan, Nimble Pilferer<br>20 Mountain<br><span style="color:#bdbab2">// Sideboard</span><br>3 Smash to Smithereens<br>2 Roiling Vortex<br><span style="color:#bdbab2">paste text or import file…</span>
+            </div>
+          </div>
+          <!-- right preview -->
+          <div style="flex:1;min-width:0;padding:18px;background:#fbfaf7">
+            <!-- fidelity prompt banner -->
+            <div style="background:#f1efe9;border-radius:9px;padding:11px 13px;margin-bottom:14px"><div style="font:600 12px Helvetica;margin-bottom:7px">Some cards have no printing specified</div><div style="display:flex;gap:8px"><button style="border:1px solid #2a2820;background:#2a2820;color:#fff;border-radius:7px;padding:6px 11px;font:600 11px Helvetica;cursor:pointer">Cheapest first</button><button style="border:1px solid #d8d6cd;background:#fff;color:#6b6862;border-radius:7px;padding:6px 11px;font:600 11px Helvetica;cursor:pointer">Pick from collection</button></div></div>
+            <div style="font:600 11px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:8px">Mainboard · 34</div>
+            <div style="background:#fff;border:1px solid #ececea;border-radius:9px;overflow:hidden;margin-bottom:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid #f1efe9"><span style="font:600 12px Helvetica">4× Lightning Bolt <span style="font:500 10px ui-monospace,monospace;color:#9a978d">(M10)</span></span><span style="display:flex;align-items:center;gap:7px"><span style="font:600 10px ui-monospace,monospace;color:#1f5a33">owned</span><span title="mark shared" style="font:600 8px ui-monospace,monospace;color:#9a978d;border:1px solid #d8d6cd;border-radius:5px;padding:2px 6px;cursor:pointer">share</span></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid #f1efe9"><span style="font:600 12px Helvetica">4× Goblin Guide</span><span style="display:flex;align-items:center;gap:7px"><span style="font:600 10px ui-monospace,monospace;color:#1f5a33">owned</span><span title="shared on" style="font:600 8px ui-monospace,monospace;color:#fff;background:#2a2820;border:1px solid #2a2820;border-radius:5px;padding:2px 6px;cursor:pointer">share</span></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid #f1efe9;background:#f6f1e3"><span style="font:600 12px Helvetica;color:#7a6a3a">2× Ragavan, Nimble Pilferer</span><span style="font:600 10px ui-monospace,monospace;color:#7a6a3a">⚠ 1 unowned</span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px"><span style="font:600 12px Helvetica">20× Mountain</span><span style="display:flex;align-items:center;gap:7px"><span style="font:600 10px ui-monospace,monospace;color:#1f5a33">owned</span><span title="mark shared" style="font:600 8px ui-monospace,monospace;color:#9a978d;border:1px solid #d8d6cd;border-radius:5px;padding:2px 6px;cursor:pointer">share</span></span></div>
+            </div>
+            <div style="font:600 11px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:8px">Sideboard · 5</div>
+            <div style="background:#fff;border:1px solid #ececea;border-radius:9px;padding:9px 12px;font:500 12px Helvetica;color:#6b6862">3× Smash to Smithereens · 2× Roiling Vortex</div>
+          </div>
+        </div>
+        <!-- commit gate action bar (D7) -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-top:1px solid #ececea;background:#faf9f6">
+          <span style="font:500 12px Helvetica;color:#9a978d">1 unowned resolved · nothing saved until you commit (D7)</span>
+          <div style="display:flex;gap:8px"><button style="border:1px solid #d8d6cd;background:#fff;border-radius:8px;padding:9px 14px;font:600 12px Helvetica;color:#6b6862;cursor:pointer">Cancel</button><button style="border:1px solid #2a2820;background:#2a2820;border-radius:8px;padding:9px 16px;font:600 12px Helvetica;color:#fff;cursor:pointer">Review changes → Commit</button></div>
+        </div>
+        <!-- unowned modal overlay -->
+        <div style="position:absolute;right:30px;bottom:30px;width:320px;background:#fff;border:1px solid #d8d6cd;border-radius:13px;box-shadow:0 10px 30px rgba(0,0,0,.16);padding:16px">
+          <div style="font:600 11px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:6px">Unowned card</div>
+          <div style="font:700 15px Helvetica;margin-bottom:3px">Ragavan, Nimble Pilferer</div>
+          <div style="font:500 11px Helvetica;color:#9a978d;margin-bottom:14px">You own 1 of 2 needed. How should this resolve?</div>
+          <button style="width:100%;text-align:left;border:1px solid #2a2820;background:#2a2820;color:#fff;border-radius:9px;padding:10px 12px;font:600 12px Helvetica;cursor:pointer;margin-bottom:7px">1 · Add to collection</button>
+          <button style="width:100%;text-align:left;border:1px solid #d8d6cd;background:#fff;border-radius:9px;padding:10px 12px;font:600 12px Helvetica;color:#3a382f;cursor:pointer;margin-bottom:7px">2 · Import &amp; mark unowned</button>
+          <button style="width:100%;text-align:left;border:1px solid #d8d6cd;background:#fff;border-radius:9px;padding:10px 12px;font:600 12px Helvetica;color:#3a382f;cursor:pointer">3 · Edit text</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- decklist mobile -->
+    <div style="flex:none;width:340px">
+      <div style="font:600 12px/1 ui-monospace,monospace;color:#6b6862;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px">Mobile — paste → preview · unowned bottom sheet</div>
+      <div style="background:#1c1b18;border-radius:34px;padding:10px;box-shadow:0 4px 16px rgba(0,0,0,.18);width:340px">
+        <div style="background:#fff;border-radius:26px;overflow:hidden;height:640px;display:flex;flex-direction:column;position:relative">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px 4px;font:600 11px Helvetica"><span>9:41</span><span style="font:500 10px ui-monospace,monospace;color:#9a978d">▮▮▮ ◓</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #ececea"><span style="font:400 17px Helvetica;color:#6b6862">‹</span><span style="font:700 14px Helvetica">Mono-Red Aggro</span><span style="width:14px"></span></div>
+          <div style="flex:1;padding:14px 16px;overflow:hidden">
+            <div style="font:600 10px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:8px">Mainboard · 34</div>
+            <div style="background:#faf9f6;border:1px solid #ececea;border-radius:9px;overflow:hidden">
+              <div style="display:flex;justify-content:space-between;padding:9px 11px;border-bottom:1px solid #f1efe9"><span style="font:600 12px Helvetica">4× Lightning Bolt</span><span style="font:600 9px ui-monospace,monospace;color:#1f5a33">owned</span></div>
+              <div style="display:flex;justify-content:space-between;padding:9px 11px;border-bottom:1px solid #f1efe9;background:#f6f1e3"><span style="font:600 12px Helvetica;color:#7a6a3a">2× Ragavan</span><span style="font:600 9px ui-monospace,monospace;color:#7a6a3a">⚠ unowned</span></div>
+              <div style="display:flex;justify-content:space-between;padding:9px 11px"><span style="font:600 12px Helvetica">20× Mountain</span><span style="font:600 9px ui-monospace,monospace;color:#1f5a33">owned</span></div>
+            </div>
+          </div>
+          <!-- bottom sheet -->
+          <div style="border-top:1px solid #ececea;border-radius:18px 18px 0 0;box-shadow:0 -4px 16px rgba(0,0,0,.08);padding:14px 16px 18px">
+            <div style="display:flex;justify-content:center;margin-bottom:10px"><span style="width:34px;height:4px;border-radius:2px;background:#d8d6cd"></span></div>
+            <div style="font:700 14px Helvetica;margin-bottom:2px">Ragavan, Nimble Pilferer</div>
+            <div style="font:500 11px Helvetica;color:#9a978d;margin-bottom:12px">Own 1 of 2 needed</div>
+            <button style="width:100%;border:1px solid #2a2820;background:#2a2820;color:#fff;border-radius:9px;padding:11px;font:600 12px Helvetica;margin-bottom:7px">Add to collection</button>
+            <button style="width:100%;border:1px solid #d8d6cd;background:#fff;color:#3a382f;border-radius:9px;padding:11px;font:600 12px Helvetica;margin-bottom:7px">Import &amp; mark unowned</button>
+            <button style="width:100%;border:1px solid #d8d6cd;background:#fff;color:#3a382f;border-radius:9px;padding:11px;font:600 12px Helvetica">Edit text</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

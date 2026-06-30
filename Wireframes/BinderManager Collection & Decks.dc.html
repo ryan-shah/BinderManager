@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}body{margin:0}
+  .pip{width:15px;height:15px;border-radius:50%;font:700 9px/15px ui-monospace,monospace;text-align:center;display:inline-block;flex:none}
+  .qty{font:600 8px/1.3 ui-monospace,monospace;color:#6b6862;background:#fff;border:1px solid #d8d6cd;border-radius:3px;padding:0 3px}
+</style>
+</helmet>
+
+<div style="width:max-content;min-width:100%;min-height:100vh;box-sizing:border-box;padding:48px;background:#e7e5df;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#2a2820">
+
+  <!-- cross-tab nav -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:26px">
+    <a href="BinderManager%20Wireframes.dc.html" style="font:600 11px ui-monospace,monospace;padding:6px 11px;border-radius:7px;text-decoration:none;border:1px solid #d8d6cd;color:#6b6862;background:#fff">Hero loop · binder view + editor</a>
+    <a href="BinderManager%20Shell%2C%20Home%20%26%20Settings.dc.html" style="font:600 11px ui-monospace,monospace;padding:6px 11px;border-radius:7px;text-decoration:none;border:1px solid #d8d6cd;color:#6b6862;background:#fff">Shell · Home · Settings</a>
+    <a href="BinderManager%20Onboarding%20%26%20Import.dc.html" style="font:600 11px ui-monospace,monospace;padding:6px 11px;border-radius:7px;text-decoration:none;border:1px solid #d8d6cd;color:#6b6862;background:#fff">Onboarding · Import</a>
+    <a href="BinderManager%20Collection%20%26%20Decks.dc.html" style="font:600 11px ui-monospace,monospace;padding:6px 11px;border-radius:7px;text-decoration:none;border:1px solid #2a2820;color:#fff;background:#2a2820">Collection · Decks</a>
+    <a href="BinderManager%20Binders%20%26%20Review.dc.html" style="font:600 11px ui-monospace,monospace;padding:6px 11px;border-radius:7px;text-decoration:none;border:1px solid #d8d6cd;color:#6b6862;background:#fff">Binders · Review</a>
+  </div>
+
+  <div style="margin-bottom:40px;max-width:760px">
+    <div style="font:600 11px/1 ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:#8a877e;margin-bottom:10px">BinderManager · Wireframes · mid-fi</div>
+    <h1 style="font:700 30px/1.15 'Helvetica Neue',Helvetica,sans-serif;margin:0 0 8px">Collection search &amp; Decks</h1>
+    <p style="font:400 14px/1.55 'Helvetica Neue',Helvetica,sans-serif;color:#6b6862;margin:0">Screens #6, #5, #11. The unified query surface (Scryfall subset + <code style="font:500 13px ui-monospace,monospace">have:</code>/<code style="font:500 13px ui-monospace,monospace">unused:</code>), deck reservation management, and the single (printing+finish) stack detail.</p>
+  </div>
+
+  <!-- ============ #6 COLLECTION SEARCH ============ -->
+  <div style="margin-bottom:14px">
+    <h2 style="font:700 19px 'Helvetica Neue',Helvetica,sans-serif;margin:0 0 3px">6 · Collection search / browser</h2>
+    <p style="font:400 13px ui-monospace,monospace;color:#8a877e;margin:0">Traces to D5 (unified engine), D2 (printing+finish), D4 (price) · filter rail + query bar + grid</p>
+  </div>
+  <div style="display:flex;gap:48px;align-items:flex-start;margin-bottom:64px">
+
+    <!-- search desktop -->
+    <div style="flex:none;width:1100px">
+      <div style="font:600 12px/1 ui-monospace,monospace;color:#6b6862;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px">Desktop — filter rail + raw query (in sync) + dense card grid</div>
+      <div style="background:#fff;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden;display:flex;height:600px">
+        <!-- filter rail -->
+        <div style="width:230px;flex:none;border-right:1px solid #ececea;padding:16px;overflow:hidden;background:#faf9f6">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><span style="font:700 12px Helvetica">Filters</span><span style="font:500 11px ui-monospace,monospace;color:#9a978d">« collapse</span></div>
+          <div style="font:600 10px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:7px">Color / identity</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+            <span class="pip" style="width:26px;height:26px;line-height:24px;font-size:11px;background:#f0ead0;border:2px solid #2a2820;color:#6b5e2e">W</span>
+            <span class="pip" style="width:26px;height:26px;line-height:22px;font-size:11px;background:#bcdcef;border:1px solid #6fa8cf;color:#1f5a7a">U</span>
+            <span class="pip" style="width:26px;height:26px;line-height:22px;font-size:11px;background:#c3bdb6;border:1px solid #847c72;color:#2c2722">B</span>
+            <span class="pip" style="width:26px;height:26px;line-height:24px;font-size:11px;background:#f0b3a2;border:2px solid #2a2820;color:#7a2f1f">R</span>
+            <span class="pip" style="width:26px;height:26px;line-height:22px;font-size:11px;background:#aed7b9;border:1px solid #6fae84;color:#1f5a33">G</span>
+            <span class="pip" style="width:26px;height:26px;line-height:22px;font-size:11px;background:#d9d4cd;border:1px solid #a39c91;color:#5a544b">C</span>
+            <span class="pip" style="width:26px;height:26px;line-height:22px;font-size:11px;background:#e8d5a3;border:1px solid #c4a44e;color:#7a6a3a">M</span>
+          </div>
+          <div style="font:600 10px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:7px">Price band</div>
+          <div style="display:flex;justify-content:space-between;font:600 10px ui-monospace,monospace;color:#2a2820;margin-bottom:5px"><span>$0</span><span>$50+</span></div>
+          <div style="position:relative;height:5px;background:#e6e4dc;border-radius:4px;margin-bottom:16px"><div style="position:absolute;left:10%;right:35%;top:0;bottom:0;background:#9a978d;border-radius:4px"></div><span style="position:absolute;left:10%;top:50%;width:13px;height:13px;margin:-7px 0 0 -7px;border-radius:50%;background:#fff;border:2px solid #2a2820"></span><span style="position:absolute;left:65%;top:50%;width:13px;height:13px;margin:-7px 0 0 -7px;border-radius:50%;background:#fff;border:2px solid #2a2820"></span></div>
+          <div style="font:600 10px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:7px">Treatments</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px"><span style="font:600 10px Helvetica;color:#fff;background:#2a2820;border-radius:6px;padding:4px 8px">foil</span><span style="font:600 10px Helvetica;color:#6b6862;border:1px solid #d8d6cd;border-radius:6px;padding:4px 8px">etched</span><span style="font:600 10px Helvetica;color:#6b6862;border:1px solid #d8d6cd;border-radius:6px;padding:4px 8px">showcase</span><span style="font:600 10px Helvetica;color:#6b6862;border:1px solid #d8d6cd;border-radius:6px;padding:4px 8px">borderless</span></div>
+          <div style="font:600 10px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:7px">Rarity</div>
+          <div style="display:flex;gap:5px;margin-bottom:16px"><span style="font:600 11px Helvetica;color:#6b6862;border:1px solid #d8d6cd;border-radius:6px;padding:3px 9px">C</span><span style="font:600 11px Helvetica;color:#6b6862;border:1px solid #d8d6cd;border-radius:6px;padding:3px 9px">U</span><span style="font:600 11px Helvetica;color:#fff;background:#2a2820;border-radius:6px;padding:3px 9px">R</span><span style="font:600 11px Helvetica;color:#fff;background:#2a2820;border-radius:6px;padding:3px 9px">M</span></div>
+          <div style="font:600 10px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:7px">Card type</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px"><span style="font:600 10px Helvetica;color:#fff;background:#2a2820;border-radius:6px;padding:4px 8px">Creature</span><span style="font:600 10px Helvetica;color:#6b6862;border:1px solid #d8d6cd;border-radius:6px;padding:4px 8px">Instant</span><span style="font:600 10px Helvetica;color:#6b6862;border:1px solid #d8d6cd;border-radius:6px;padding:4px 8px">Sorcery</span><span style="font:600 10px Helvetica;color:#6b6862;border:1px solid #d8d6cd;border-radius:6px;padding:4px 8px">Artifact</span><span style="font:600 10px Helvetica;color:#6b6862;border:1px solid #d8d6cd;border-radius:6px;padding:4px 8px">Enchant.</span><span style="font:600 10px Helvetica;color:#6b6862;border:1px solid #d8d6cd;border-radius:6px;padding:4px 8px">Planesw.</span><span style="font:600 10px Helvetica;color:#6b6862;border:1px solid #d8d6cd;border-radius:6px;padding:4px 8px">Battle</span><span style="font:600 10px Helvetica;color:#6b6862;border:1px solid #d8d6cd;border-radius:6px;padding:4px 8px">Land</span></div>
+          <div style="font:600 10px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:7px">Sets <span style="font-weight:400;color:#bdbab2">incl / excl</span></div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px"><span style="font:600 10px ui-monospace,monospace;color:#1f5a33;background:#eef5ef;border:1px solid #cfe3d4;border-radius:6px;padding:4px 8px">+ MH3</span><span style="font:600 10px ui-monospace,monospace;color:#1f5a33;background:#eef5ef;border:1px solid #cfe3d4;border-radius:6px;padding:4px 8px">+ LCI</span><span style="font:600 10px ui-monospace,monospace;color:#7a2f1f;background:#f6edea;border:1px solid #e6cabf;border-radius:6px;padding:4px 8px">– SLD</span><span style="font:600 10px ui-monospace,monospace;color:#9a978d;background:#f3f1ec;border:1px dashed #d8d6cd;border-radius:6px;padding:4px 8px">+ set</span></div>
+          <div style="font:600 10px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:7px">Oracle text <span style="font-weight:400;color:#bdbab2">(o:)</span></div>
+          <div style="display:flex;align-items:center;gap:7px;border:1px solid #d8d6cd;border-radius:8px;padding:7px 10px;background:#faf9f6;margin-bottom:16px"><span style="color:#bdbab2;font-size:11px">“”</span><span style="font:500 11px ui-monospace,monospace;color:#3a382f">draw a card</span></div>
+          <div style="display:flex;align-items:center;gap:9px;background:#f1efe9;border-radius:8px;padding:9px 11px"><span style="width:36px;height:20px;border-radius:11px;background:#2a2820;position:relative;flex:none"><span style="position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff"></span></span><span style="font:600 11px Helvetica">Idle only <span style="color:#9a978d;font:500 10px ui-monospace,monospace">unused:</span></span></div>
+        </div>
+        <!-- main -->
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <!-- query bar -->
+          <div style="padding:14px 16px;border-bottom:1px solid #ececea">
+            <div style="display:flex;align-items:center;gap:9px;border:1px solid #d8d6cd;border-radius:9px;padding:9px 12px;background:#faf9f6;margin-bottom:10px"><span style="font:600 10px ui-monospace,monospace;color:#bdbab2">QUERY</span><span style="font:500 13px ui-monospace,monospace;color:#3a382f">c:r type:creature is:foil price&lt;=50 r&gt;=rare o:draw unused:</span></div>
+            <div style="display:flex;align-items:center;gap:7px">
+              <span style="font:600 11px Helvetica;color:#3a382f;background:#f1efe9;border-radius:7px;padding:5px 9px;display:flex;align-items:center;gap:6px">red <span style="color:#9a978d">×</span></span>
+              <span style="font:600 11px Helvetica;color:#3a382f;background:#f1efe9;border-radius:7px;padding:5px 9px;display:flex;align-items:center;gap:6px">creature <span style="color:#9a978d">×</span></span>
+              <span style="font:600 11px Helvetica;color:#3a382f;background:#f1efe9;border-radius:7px;padding:5px 9px;display:flex;align-items:center;gap:6px">foil <span style="color:#9a978d">×</span></span>
+              <span style="font:600 11px Helvetica;color:#3a382f;background:#f1efe9;border-radius:7px;padding:5px 9px;display:flex;align-items:center;gap:6px">≤ $50 <span style="color:#9a978d">×</span></span>
+              <span style="font:600 11px Helvetica;color:#3a382f;background:#f1efe9;border-radius:7px;padding:5px 9px;display:flex;align-items:center;gap:6px">idle <span style="color:#9a978d">×</span></span>
+              <span style="flex:1"></span>
+              <span style="font:600 11px ui-monospace,monospace;color:#9a978d">48 results</span>
+              <span style="font:600 11px Helvetica;color:#6b6862;border:1px solid #d8d6cd;border-radius:7px;padding:5px 10px">Group: card type ▾</span>
+              <span style="font:600 11px Helvetica;color:#6b6862;border:1px solid #d8d6cd;border-radius:7px;padding:5px 10px">Sort: price ↓</span>
+            </div>
+          </div>
+          <!-- grid -->
+          <div style="flex:1;overflow:hidden;padding:16px">
+            <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px">
+              <!-- tile generator: 12 tiles -->
+              <div style="border:1px solid #ececea;border-radius:7px;overflow:hidden"><div style="aspect-ratio:5/7;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 5px,#e4e2da 5px,#e4e2da 10px);position:relative;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><div style="display:flex;justify-content:space-between"><span class="pip" style="background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span><span class="qty">×1</span></div><span style="align-self:flex-end;font:700 8px ui-monospace,monospace;color:#caa44e;background:#fff;border-radius:3px;padding:0 3px">FOIL</span></div><div style="padding:5px 6px"><div style="font:600 9px Helvetica;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ragavan</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px"><span style="font:600 9px ui-monospace,monospace">$42</span><span style="font:600 7px ui-monospace,monospace;color:#1f5a33;background:#eef5ef;border-radius:3px;padding:0 3px">idle</span></div></div></div>
+              <div style="border:1px solid #ececea;border-radius:7px;overflow:hidden"><div style="aspect-ratio:5/7;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 5px,#e4e2da 5px,#e4e2da 10px);position:relative;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><div style="display:flex;justify-content:space-between"><span class="pip" style="background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span><span class="qty">×2</span></div><span style="align-self:flex-end;font:700 8px ui-monospace,monospace;color:#caa44e;background:#fff;border-radius:3px;padding:0 3px">FOIL</span></div><div style="padding:5px 6px"><div style="font:600 9px Helvetica;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Goblin Guide</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px"><span style="font:600 9px ui-monospace,monospace">$19</span><span style="font:600 7px ui-monospace,monospace;color:#7a6a3a;background:#f6f1e3;border-radius:3px;padding:0 3px">reserved</span></div></div></div>
+              <div style="border:1px solid #ececea;border-radius:7px;overflow:hidden"><div style="aspect-ratio:5/7;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 5px,#e4e2da 5px,#e4e2da 10px);position:relative;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><div style="display:flex;justify-content:space-between"><span class="pip" style="background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span><span class="qty">×1</span></div><span style="align-self:flex-end;font:700 8px ui-monospace,monospace;color:#caa44e;background:#fff;border-radius:3px;padding:0 3px">FOIL</span></div><div style="padding:5px 6px"><div style="font:600 9px Helvetica;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Seasoned Pyro</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px"><span style="font:600 9px ui-monospace,monospace">$12</span><span style="font:600 7px ui-monospace,monospace;color:#6b6862;background:#f1efe9;border-radius:3px;padding:0 3px">Premium</span></div></div></div>
+              <div style="border:1px solid #ececea;border-radius:7px;overflow:hidden"><div style="aspect-ratio:5/7;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 5px,#e4e2da 5px,#e4e2da 10px);position:relative;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><div style="display:flex;justify-content:space-between"><span class="pip" style="background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span><span class="qty">×3</span></div></div><div style="padding:5px 6px"><div style="font:600 9px Helvetica;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Fable of Mr.</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px"><span style="font:600 9px ui-monospace,monospace">$9</span><span style="font:600 7px ui-monospace,monospace;color:#1f5a33;background:#eef5ef;border-radius:3px;padding:0 3px">idle</span></div></div></div>
+              <div style="border:1px solid #ececea;border-radius:7px;overflow:hidden"><div style="aspect-ratio:5/7;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 5px,#e4e2da 5px,#e4e2da 10px);position:relative;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><div style="display:flex;justify-content:space-between"><span class="pip" style="background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span><span class="qty">×1</span></div><span style="align-self:flex-end;font:700 8px ui-monospace,monospace;color:#caa44e;background:#fff;border-radius:3px;padding:0 3px">FOIL</span></div><div style="padding:5px 6px"><div style="font:600 9px Helvetica;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Bonecrusher</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px"><span style="font:600 9px ui-monospace,monospace">$6</span><span style="font:600 7px ui-monospace,monospace;color:#1f5a33;background:#eef5ef;border-radius:3px;padding:0 3px">idle</span></div></div></div>
+              <div style="border:1px solid #ececea;border-radius:7px;overflow:hidden"><div style="aspect-ratio:5/7;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 5px,#e4e2da 5px,#e4e2da 10px);position:relative;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><div style="display:flex;justify-content:space-between"><span class="pip" style="background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span><span class="qty">×1</span></div></div><div style="padding:5px 6px"><div style="font:600 9px Helvetica;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Goblin Chain</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px"><span style="font:600 9px ui-monospace,monospace">$5</span><span style="font:600 7px ui-monospace,monospace;color:#7a6a3a;background:#f6f1e3;border-radius:3px;padding:0 3px">reserved</span></div></div></div>
+              <div style="border:1px solid #ececea;border-radius:7px;overflow:hidden"><div style="aspect-ratio:5/7;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 5px,#e4e2da 5px,#e4e2da 10px);position:relative;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><div style="display:flex;justify-content:space-between"><span class="pip" style="background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span><span class="qty">×2</span></div><span style="align-self:flex-end;font:700 8px ui-monospace,monospace;color:#caa44e;background:#fff;border-radius:3px;padding:0 3px">FOIL</span></div><div style="padding:5px 6px"><div style="font:600 9px Helvetica;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Anger of Gods</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px"><span style="font:600 9px ui-monospace,monospace">$8</span><span style="font:600 7px ui-monospace,monospace;color:#1f5a33;background:#eef5ef;border-radius:3px;padding:0 3px">idle</span></div></div></div>
+              <div style="border:1px solid #ececea;border-radius:7px;overflow:hidden"><div style="aspect-ratio:5/7;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 5px,#e4e2da 5px,#e4e2da 10px);position:relative;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><div style="display:flex;justify-content:space-between"><span class="pip" style="background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span><span class="qty">×1</span></div></div><div style="padding:5px 6px"><div style="font:600 9px Helvetica;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Pyroclasm</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px"><span style="font:600 9px ui-monospace,monospace">$5</span><span style="font:600 7px ui-monospace,monospace;color:#1f5a33;background:#eef5ef;border-radius:3px;padding:0 3px">idle</span></div></div></div>
+              <div style="border:1px solid #ececea;border-radius:7px;overflow:hidden"><div style="aspect-ratio:5/7;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 5px,#e4e2da 5px,#e4e2da 10px);position:relative;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><div style="display:flex;justify-content:space-between"><span class="pip" style="background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span><span class="qty">×4</span></div></div><div style="padding:5px 6px"><div style="font:600 9px Helvetica;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Lightning Bolt</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px"><span style="font:600 9px ui-monospace,monospace">$5</span><span style="font:600 7px ui-monospace,monospace;color:#7a6a3a;background:#f6f1e3;border-radius:3px;padding:0 3px">reserved</span></div></div></div>
+              <div style="border:1px solid #ececea;border-radius:7px;overflow:hidden"><div style="aspect-ratio:5/7;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 5px,#e4e2da 5px,#e4e2da 10px);position:relative;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><div style="display:flex;justify-content:space-between"><span class="pip" style="background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span><span class="qty">×1</span></div><span style="align-self:flex-end;font:700 8px ui-monospace,monospace;color:#caa44e;background:#fff;border-radius:3px;padding:0 3px">FOIL</span></div><div style="padding:5px 6px"><div style="font:600 9px Helvetica;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Urabrask</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px"><span style="font:600 9px ui-monospace,monospace">$11</span><span style="font:600 7px ui-monospace,monospace;color:#1f5a33;background:#eef5ef;border-radius:3px;padding:0 3px">idle</span></div></div></div>
+              <div style="border:1px solid #ececea;border-radius:7px;overflow:hidden"><div style="aspect-ratio:5/7;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 5px,#e4e2da 5px,#e4e2da 10px);position:relative;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><div style="display:flex;justify-content:space-between"><span class="pip" style="background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span><span class="qty">×2</span></div></div><div style="padding:5px 6px"><div style="font:600 9px Helvetica;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Skewer the C</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px"><span style="font:600 9px ui-monospace,monospace">$5</span><span style="font:600 7px ui-monospace,monospace;color:#1f5a33;background:#eef5ef;border-radius:3px;padding:0 3px">idle</span></div></div></div>
+              <div style="border:1px solid #ececea;border-radius:7px;overflow:hidden"><div style="aspect-ratio:5/7;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 5px,#e4e2da 5px,#e4e2da 10px);position:relative;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><div style="display:flex;justify-content:space-between"><span class="pip" style="background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span><span class="qty">×1</span></div><span style="align-self:flex-end;font:700 8px ui-monospace,monospace;color:#caa44e;background:#fff;border-radius:3px;padding:0 3px">FOIL</span></div><div style="padding:5px 6px"><div style="font:600 9px Helvetica;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Glorybringer</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px"><span style="font:600 9px ui-monospace,monospace">$7</span><span style="font:600 7px ui-monospace,monospace;color:#1f5a33;background:#eef5ef;border-radius:3px;padding:0 3px">idle</span></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- search mobile -->
+    <div style="flex:none;width:340px">
+      <div style="font:600 12px/1 ui-monospace,monospace;color:#6b6862;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px">Mobile — query + Filters sheet + 2-wide grid</div>
+      <div style="background:#1c1b18;border-radius:34px;padding:10px;box-shadow:0 4px 16px rgba(0,0,0,.18);width:340px">
+        <div style="background:#fff;border-radius:26px;overflow:hidden;height:640px;display:flex;flex-direction:column;position:relative">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px 4px;font:600 11px Helvetica"><span>9:41</span><span style="font:500 10px ui-monospace,monospace;color:#9a978d">▮▮▮ ◓</span></div>
+          <div style="padding:10px 14px;border-bottom:1px solid #ececea">
+            <div style="display:flex;align-items:center;gap:8px;border:1px solid #d8d6cd;border-radius:9px;padding:9px 11px;background:#faf9f6;margin-bottom:9px"><span style="color:#bdbab2">○</span><span style="font:500 11px ui-monospace,monospace;color:#3a382f">c:r type:creature is:foil unused:</span></div>
+            <div style="display:flex;align-items:center;gap:7px;overflow:hidden"><button style="border:1px solid #2a2820;background:#2a2820;color:#fff;border-radius:7px;padding:6px 11px;font:600 11px Helvetica;flex:none">Filters</button><span style="font:600 10px Helvetica;color:#3a382f;background:#f1efe9;border-radius:6px;padding:4px 8px;flex:none">red ×</span><span style="font:600 10px Helvetica;color:#3a382f;background:#f1efe9;border-radius:6px;padding:4px 8px;flex:none">creature ×</span><span style="font:600 10px Helvetica;color:#3a382f;background:#f1efe9;border-radius:6px;padding:4px 8px;flex:none">foil ×</span><span style="font:600 10px Helvetica;color:#3a382f;background:#f1efe9;border-radius:6px;padding:4px 8px;flex:none">idle ×</span></div>
+          </div>
+          <div style="flex:1;overflow:hidden;padding:12px 14px">
+            <div style="font:600 10px ui-monospace,monospace;color:#9a978d;margin-bottom:8px">48 results · price ↓</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div style="border:1px solid #ececea;border-radius:8px;overflow:hidden"><div style="aspect-ratio:5/7;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 6px,#e4e2da 6px,#e4e2da 12px);padding:6px;display:flex;flex-direction:column;justify-content:space-between"><div style="display:flex;justify-content:space-between"><span class="pip" style="background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span><span class="qty">×1</span></div><span style="align-self:flex-end;font:700 8px ui-monospace,monospace;color:#caa44e;background:#fff;border-radius:3px;padding:0 3px">FOIL</span></div><div style="padding:6px 7px"><div style="font:600 10px Helvetica">Ragavan</div><div style="display:flex;justify-content:space-between;margin-top:3px"><span style="font:600 10px ui-monospace,monospace">$42</span><span style="font:600 7px ui-monospace,monospace;color:#1f5a33;background:#eef5ef;border-radius:3px;padding:0 3px">idle</span></div></div></div>
+              <div style="border:1px solid #ececea;border-radius:8px;overflow:hidden"><div style="aspect-ratio:5/7;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 6px,#e4e2da 6px,#e4e2da 12px);padding:6px;display:flex;flex-direction:column;justify-content:space-between"><div style="display:flex;justify-content:space-between"><span class="pip" style="background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span><span class="qty">×2</span></div></div><div style="padding:6px 7px"><div style="font:600 10px Helvetica">Goblin Guide</div><div style="display:flex;justify-content:space-between;margin-top:3px"><span style="font:600 10px ui-monospace,monospace">$19</span><span style="font:600 7px ui-monospace,monospace;color:#7a6a3a;background:#f6f1e3;border-radius:3px;padding:0 3px">resv</span></div></div></div>
+              <div style="border:1px solid #ececea;border-radius:8px;overflow:hidden"><div style="aspect-ratio:5/7;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 6px,#e4e2da 6px,#e4e2da 12px);padding:6px;display:flex;flex-direction:column;justify-content:space-between"><div style="display:flex;justify-content:space-between"><span class="pip" style="background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span><span class="qty">×3</span></div></div><div style="padding:6px 7px"><div style="font:600 10px Helvetica">Fable</div><div style="display:flex;justify-content:space-between;margin-top:3px"><span style="font:600 10px ui-monospace,monospace">$9</span><span style="font:600 7px ui-monospace,monospace;color:#1f5a33;background:#eef5ef;border-radius:3px;padding:0 3px">idle</span></div></div></div>
+              <div style="border:1px solid #ececea;border-radius:8px;overflow:hidden"><div style="aspect-ratio:5/7;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 6px,#e4e2da 6px,#e4e2da 12px);padding:6px;display:flex;flex-direction:column;justify-content:space-between"><div style="display:flex;justify-content:space-between"><span class="pip" style="background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span><span class="qty">×1</span></div><span style="align-self:flex-end;font:700 8px ui-monospace,monospace;color:#caa44e;background:#fff;border-radius:3px;padding:0 3px">FOIL</span></div><div style="padding:6px 7px"><div style="font:600 10px Helvetica">Bonecrusher</div><div style="display:flex;justify-content:space-between;margin-top:3px"><span style="font:600 10px ui-monospace,monospace">$6</span><span style="font:600 7px ui-monospace,monospace;color:#1f5a33;background:#eef5ef;border-radius:3px;padding:0 3px">idle</span></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ #5 DECKS ============ -->
+  <div style="margin-bottom:14px">
+    <h2 style="font:700 19px 'Helvetica Neue',Helvetica,sans-serif;margin:0 0 3px">5 · Decks — list &amp; detail</h2>
+    <p style="font:400 13px ui-monospace,monospace;color:#8a877e;margin:0">Traces to D3 (reservation, assembled/shared), D10 · master-detail</p>
+  </div>
+  <div style="display:flex;gap:48px;align-items:flex-start;margin-bottom:64px">
+
+    <!-- decks desktop -->
+    <div style="flex:none;width:1080px">
+      <div style="font:600 12px/1 ui-monospace,monospace;color:#6b6862;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px">Desktop — deck list (left) + detail (right)</div>
+      <div style="background:#fff;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden;display:flex;height:540px">
+        <!-- list -->
+        <div style="width:280px;flex:none;border-right:1px solid #ececea;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 14px 10px"><span style="font:700 14px Helvetica">Decks</span><button style="border:1px solid #2a2820;background:#2a2820;border-radius:7px;padding:6px 10px;font:600 11px Helvetica;color:#fff;cursor:pointer">+ Import</button></div>
+          <div style="padding:0 14px 10px;border-bottom:1px solid #ececea"><div style="display:flex;align-items:center;gap:7px;border:1px solid #d8d6cd;border-radius:8px;padding:7px 10px;background:#faf9f6"><span style="color:#bdbab2;font-size:11px">○</span><span style="font:500 11px ui-monospace,monospace;color:#bdbab2">Search decks · format, color…</span></div></div>
+          <div style="flex:1;overflow:hidden">
+            <div style="padding:13px 14px;border-bottom:1px solid #f1efe9;background:#f1efe9"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font:700 13px Helvetica">Mono-Red Aggro</span><span style="font:600 9px ui-monospace,monospace;color:#fff;background:#2a2820;border-radius:5px;padding:1px 6px">ASSEMBLED</span></div><div style="font:500 11px ui-monospace,monospace;color:#9a978d;margin-top:3px">Modern · 75 cards · <span style="color:#7a6a3a">1 unowned</span></div></div>
+            <div style="padding:13px 14px;border-bottom:1px solid #f1efe9"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font:700 13px Helvetica">Azorius Control</span><span style="font:600 9px ui-monospace,monospace;color:#6b6862;background:#f1efe9;border-radius:5px;padding:1px 6px">SHARED</span></div><div style="font:500 11px ui-monospace,monospace;color:#9a978d;margin-top:3px">Modern · 75 cards</div></div>
+            <div style="padding:13px 14px;border-bottom:1px solid #f1efe9"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font:700 13px Helvetica">Mono-G Tron</span><span style="font:600 9px ui-monospace,monospace;color:#6b6862;background:#f1efe9;border-radius:5px;padding:1px 6px">SHARED</span></div><div style="font:500 11px ui-monospace,monospace;color:#9a978d;margin-top:3px">Modern · 75 · <span style="color:#7a6a3a">4 unowned</span></div></div>
+            <div style="padding:13px 14px"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font:700 13px Helvetica">Burn EDH</span><span style="font:600 9px ui-monospace,monospace;color:#fff;background:#2a2820;border-radius:5px;padding:1px 6px">ASSEMBLED</span></div><div style="font:500 11px ui-monospace,monospace;color:#9a978d;margin-top:3px">Commander · 100 cards</div></div>
+          </div>
+        </div>
+        <!-- detail -->
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <div style="padding:16px 18px;border-bottom:1px solid #ececea;display:flex;align-items:flex-start;justify-content:space-between">
+            <div><div style="display:flex;align-items:center;gap:8px"><h3 style="font:700 19px Helvetica;margin:0">Mono-Red Aggro</h3><span style="font:600 9px ui-monospace,monospace;color:#fff;background:#2a2820;border-radius:5px;padding:2px 7px">ASSEMBLED</span></div><div style="font:500 12px ui-monospace,monospace;color:#9a978d;margin-top:4px">Modern · 60 main + 15 side · reserves 58 cards from collection</div></div>
+            <button style="border:1px solid #d8d6cd;background:#fff;border-radius:7px;padding:7px 12px;font:600 12px Helvetica;color:#3a382f;cursor:pointer">Re-import / update</button>
+          </div>
+          <div style="flex:1;overflow:hidden;padding:16px 18px">
+            <!-- wants you dont own -->
+            <div style="background:#f6f1e3;border:1px solid #e8e0c9;border-radius:10px;padding:12px 14px;margin-bottom:14px"><div style="font:700 12px Helvetica;color:#7a6a3a;margin-bottom:6px">Wants you don't own · 1</div><div style="display:flex;align-items:center;justify-content:space-between"><span style="font:600 12px Helvetica;color:#7a6a3a">1× Ragavan, Nimble Pilferer</span><button style="border:1px solid #d8caa0;background:#fff;border-radius:6px;padding:4px 10px;font:600 11px Helvetica;color:#7a6a3a;cursor:pointer">Find printing</button></div></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div>
+                <div style="font:600 11px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:7px">Mainboard · 60 <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#bdbab2">· toggle per-card sharing</span></div>
+                <div style="border:1px solid #ececea;border-radius:9px;overflow:hidden">
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 11px;border-bottom:1px solid #f1efe9"><span style="font:600 12px Helvetica">4× Lightning Bolt <span style="font:500 9px ui-monospace,monospace;color:#9a978d">(M10)</span></span><span style="display:flex;align-items:center;gap:7px"><span style="font:600 9px ui-monospace,monospace;color:#1f5a33">● reserved</span><span title="shared" style="font:600 8px ui-monospace,monospace;color:#9a978d;border:1px solid #d8d6cd;border-radius:5px;padding:2px 5px;cursor:pointer">share</span></span></div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 11px;border-bottom:1px solid #f1efe9"><span style="font:600 12px Helvetica">4× Goblin Guide</span><span style="display:flex;align-items:center;gap:7px"><span style="font:600 9px ui-monospace,monospace;color:#1f5a33">● reserved</span><span title="shared" style="font:600 8px ui-monospace,monospace;color:#9a978d;border:1px solid #d8d6cd;border-radius:5px;padding:2px 5px;cursor:pointer">share</span></span></div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 11px;border-bottom:1px solid #f1efe9"><span style="font:600 12px Helvetica">3× Monastery Swiftspear</span><span style="display:flex;align-items:center;gap:7px"><span style="font:600 9px ui-monospace,monospace;color:#6b6862">○ shared</span><span title="shared on" style="font:600 8px ui-monospace,monospace;color:#fff;background:#2a2820;border:1px solid #2a2820;border-radius:5px;padding:2px 5px;cursor:pointer">share</span></span></div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 11px"><span style="font:600 12px Helvetica;color:#7a6a3a">2× Ragavan</span><span style="font:600 9px ui-monospace,monospace;color:#7a6a3a">⚠ 1 unowned</span></div>
+                </div>
+              </div>
+              <div>
+                <div style="font:600 11px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:7px">Sideboard · 15</div>
+                <div style="border:1px solid #ececea;border-radius:9px;overflow:hidden">
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 11px;border-bottom:1px solid #f1efe9"><span style="font:600 12px Helvetica">3× Smash to Smith.</span><span style="font:600 9px ui-monospace,monospace;color:#1f5a33">● reserved</span></div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 11px"><span style="font:600 12px Helvetica">2× Roiling Vortex</span><span style="font:600 9px ui-monospace,monospace;color:#1f5a33">● reserved</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- decks mobile -->
+    <div style="flex:none;width:340px">
+      <div style="font:600 12px/1 ui-monospace,monospace;color:#6b6862;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px">Mobile — deck list</div>
+      <div style="background:#1c1b18;border-radius:34px;padding:10px;box-shadow:0 4px 16px rgba(0,0,0,.18);width:340px">
+        <div style="background:#fff;border-radius:26px;overflow:hidden;height:640px;display:flex;flex-direction:column;position:relative">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px 4px;font:600 11px Helvetica"><span>9:41</span><span style="font:500 10px ui-monospace,monospace;color:#9a978d">▮▮▮ ◓</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #ececea"><span style="font:700 17px Helvetica">Decks</span><span style="font:400 17px Helvetica;color:#6b6862">○</span></div>
+          <div style="padding:10px 14px 0"><div style="display:flex;align-items:center;gap:7px;border:1px solid #d8d6cd;border-radius:8px;padding:7px 10px;background:#faf9f6"><span style="color:#bdbab2;font-size:11px">○</span><span style="font:500 11px ui-monospace,monospace;color:#bdbab2">Search decks…</span></div></div>
+          <div style="flex:1;overflow:hidden;padding:12px 14px">
+            <div style="border:1px solid #ececea;border-radius:10px;padding:13px;margin-bottom:9px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><span style="font:700 14px Helvetica">Mono-Red Aggro</span><span style="font:600 8px ui-monospace,monospace;color:#fff;background:#2a2820;border-radius:5px;padding:1px 6px">ASSEMBLED</span></div><div style="font:500 10px ui-monospace,monospace;color:#9a978d">Modern · 75 · <span style="color:#7a6a3a">1 unowned</span></div></div>
+            <div style="border:1px solid #ececea;border-radius:10px;padding:13px;margin-bottom:9px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><span style="font:700 14px Helvetica">Azorius Control</span><span style="font:600 8px ui-monospace,monospace;color:#6b6862;background:#f1efe9;border-radius:5px;padding:1px 6px">SHARED</span></div><div style="font:500 10px ui-monospace,monospace;color:#9a978d">Modern · 75</div></div>
+            <div style="border:1px solid #ececea;border-radius:10px;padding:13px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><span style="font:700 14px Helvetica">Mono-G Tron</span><span style="font:600 8px ui-monospace,monospace;color:#6b6862;background:#f1efe9;border-radius:5px;padding:1px 6px">SHARED</span></div><div style="font:500 10px ui-monospace,monospace;color:#9a978d">Modern · 75 · <span style="color:#7a6a3a">4 unowned</span></div></div>
+          </div>
+          <div style="position:absolute;right:18px;bottom:20px;width:52px;height:52px;border-radius:50%;background:#2a2820;color:#fff;display:flex;align-items:center;justify-content:center;font:300 28px Helvetica;box-shadow:0 4px 12px rgba(0,0,0,.25)">+</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- decks mobile detail -->
+    <div style="flex:none;width:340px">
+      <div style="font:600 12px/1 ui-monospace,monospace;color:#6b6862;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px">Mobile — deck detail</div>
+      <div style="background:#1c1b18;border-radius:34px;padding:10px;box-shadow:0 4px 16px rgba(0,0,0,.18);width:340px">
+        <div style="background:#fff;border-radius:26px;overflow:hidden;height:640px;display:flex;flex-direction:column;position:relative">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px 4px;font:600 11px Helvetica"><span>9:41</span><span style="font:500 10px ui-monospace,monospace;color:#9a978d">▮▮▮ ◓</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #ececea"><span style="font:400 17px Helvetica;color:#6b6862">‹</span><div style="text-align:center"><div style="font:700 14px Helvetica">Mono-Red Aggro</div><div style="font:500 9px ui-monospace,monospace;color:#9a978d">Modern · 60 + 15</div></div><span style="font:400 17px Helvetica;color:#6b6862">⋯</span></div>
+          <div style="display:flex;align-items:center;gap:6px;padding:10px 14px 0"><span style="font:600 8px ui-monospace,monospace;color:#fff;background:#2a2820;border-radius:5px;padding:2px 7px">ASSEMBLED</span><span style="font:500 10px ui-monospace,monospace;color:#9a978d">reserves 58 cards</span></div>
+          <div style="flex:1;overflow:hidden;padding:12px 14px">
+            <div style="background:#f6f1e3;border:1px solid #e8e0c9;border-radius:9px;padding:10px 12px;margin-bottom:12px"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font:600 11px Helvetica;color:#7a6a3a">1× Ragavan — don't own</span><span style="font:600 9px Helvetica;color:#7a6a3a;border:1px solid #d8caa0;background:#fff;border-radius:5px;padding:3px 7px">Find</span></div></div>
+            <div style="font:600 10px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:7px">Mainboard · 60</div>
+            <div style="border:1px solid #ececea;border-radius:9px;overflow:hidden">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 11px;border-bottom:1px solid #f1efe9"><span style="font:600 12px Helvetica">4× Lightning Bolt</span><span style="display:flex;align-items:center;gap:6px"><span style="font:600 8px ui-monospace,monospace;color:#1f5a33">● resv</span><span style="font:600 8px ui-monospace,monospace;color:#9a978d;border:1px solid #d8d6cd;border-radius:4px;padding:2px 5px">share</span></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 11px;border-bottom:1px solid #f1efe9"><span style="font:600 12px Helvetica">3× Monastery Sw.</span><span style="display:flex;align-items:center;gap:6px"><span style="font:600 8px ui-monospace,monospace;color:#6b6862">○ shared</span><span style="font:600 8px ui-monospace,monospace;color:#fff;background:#2a2820;border:1px solid #2a2820;border-radius:4px;padding:2px 5px">share</span></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 11px"><span style="font:600 12px Helvetica;color:#7a6a3a">2× Ragavan</span><span style="font:600 8px ui-monospace,monospace;color:#7a6a3a">⚠ 1 unowned</span></div>
+            </div>
+            <div style="font:600 10px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin:12px 0 7px">Sideboard · 15</div>
+            <div style="border:1px solid #ececea;border-radius:9px;padding:9px 11px;font:500 11px Helvetica;color:#6b6862">3× Smash to Smith. · 2× Roiling Vortex</div>
+          </div>
+          <div style="padding:12px 14px 16px;border-top:1px solid #ececea"><button style="width:100%;border:1px solid #d8d6cd;background:#fff;border-radius:10px;padding:11px;font:600 12px Helvetica;color:#3a382f">Re-import / update</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ #11 CARD DETAIL ============ -->
+  <div style="margin-bottom:14px">
+    <h2 style="font:700 19px 'Helvetica Neue',Helvetica,sans-serif;margin:0 0 3px">11 · Card / stack detail</h2>
+    <p style="font:400 13px ui-monospace,monospace;color:#8a877e;margin:0">Traces to D2 (printing+finish), D3 (reservation), D4 (price), D6 (binder placement)</p>
+  </div>
+  <div style="display:flex;gap:48px;align-items:flex-start;margin-bottom:48px">
+
+    <!-- card detail desktop -->
+    <div style="flex:none;width:680px">
+      <div style="font:600 12px/1 ui-monospace,monospace;color:#6b6862;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px">Desktop — modal / side panel (image + details)</div>
+      <div style="background:#fff;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid #ececea"><span style="font:600 11px ui-monospace,monospace;text-transform:uppercase;color:#9a978d">Stack detail</span><span style="font:400 16px Helvetica;color:#9a978d">×</span></div>
+        <div style="display:flex;gap:20px;padding:20px">
+          <!-- image -->
+          <div style="width:200px;flex:none;aspect-ratio:5/7;border:1px solid #c7c5bd;border-radius:10px;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 7px,#e4e2da 7px,#e4e2da 14px);position:relative;display:flex;align-items:flex-end;padding:8px">
+            <span class="pip" style="position:absolute;top:8px;left:8px;width:20px;height:20px;line-height:20px;font-size:11px;background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span>
+            <span style="font:700 9px ui-monospace,monospace;color:#caa44e;background:#fff;border-radius:4px;padding:2px 5px">FOIL</span>
+          </div>
+          <!-- details -->
+          <div style="flex:1;min-width:0">
+            <h3 style="font:700 21px Helvetica;margin:0 0 3px">Ragavan, Nimble Pilferer</h3>
+            <div style="font:500 12px ui-monospace,monospace;color:#9a978d;margin-bottom:14px">Modern Horizons 2 · #138 · Mythic · <b style="color:#caa44e">foil</b></div>
+            <div style="display:flex;gap:10px;margin-bottom:14px">
+              <div style="flex:1;background:#faf9f6;border:1px solid #ececea;border-radius:9px;padding:11px"><div style="font:700 20px Helvetica">$42.00</div><div style="font:600 9px ui-monospace,monospace;color:#9a978d">FOIL PRICE · as of 9d ago</div></div>
+              <div style="flex:1;background:#faf9f6;border:1px solid #ececea;border-radius:9px;padding:11px"><div style="font:700 20px Helvetica">×1</div><div style="font:600 9px ui-monospace,monospace;color:#9a978d">OWNED · NM · EN</div></div>
+            </div>
+            <!-- reservation -->
+            <div style="background:#f1efe9;border-radius:9px;padding:11px 13px;margin-bottom:10px"><div style="font:600 11px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:3px">Reservation</div><div style="font:600 13px Helvetica;color:#7a6a3a">Reserved by Mono-Red Aggro (1)</div></div>
+            <!-- placement -->
+            <div style="background:#f1efe9;border-radius:9px;padding:11px 13px;margin-bottom:14px"><div style="font:600 11px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:3px">Placement</div><div style="font:600 13px Helvetica">Premium · page 3, back, pocket 3 <span style="font:600 9px ui-monospace,monospace;color:#fff;background:#2a2820;border-radius:5px;padding:1px 6px;margin-left:4px">PINNED</span></div></div>
+            <div style="font:600 11px ui-monospace,monospace;text-transform:uppercase;color:#9a978d;margin-bottom:7px">Other printings you own</div>
+            <div style="display:flex;gap:8px"><span style="font:600 11px Helvetica;color:#3a382f;border:1px solid #d8d6cd;border-radius:7px;padding:5px 10px">MH2 · non-foil ×2 →</span><span style="font:600 11px Helvetica;color:#3a382f;border:1px solid #d8d6cd;border-radius:7px;padding:5px 10px">SLD · etched ×1 →</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- card detail mobile -->
+    <div style="flex:none;width:340px">
+      <div style="font:600 12px/1 ui-monospace,monospace;color:#6b6862;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px">Mobile — full-screen sheet</div>
+      <div style="background:#1c1b18;border-radius:34px;padding:10px;box-shadow:0 4px 16px rgba(0,0,0,.18);width:340px">
+        <div style="background:#fff;border-radius:26px;overflow:hidden;height:640px;display:flex;flex-direction:column">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px 4px;font:600 11px Helvetica"><span>9:41</span><span style="font:500 10px ui-monospace,monospace;color:#9a978d">▮▮▮ ◓</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px"><span style="font:400 17px Helvetica;color:#6b6862">‹</span><span style="font:400 17px Helvetica;color:#9a978d">×</span></div>
+          <div style="flex:1;overflow:hidden;padding:0 18px">
+            <div style="width:150px;margin:0 auto 14px;aspect-ratio:5/7;border:1px solid #c7c5bd;border-radius:10px;background:repeating-linear-gradient(45deg,#eceae4,#eceae4 7px,#e4e2da 7px,#e4e2da 14px);position:relative;display:flex;align-items:flex-end;padding:7px"><span class="pip" style="position:absolute;top:7px;left:7px;width:18px;height:18px;line-height:18px;background:#f0b3a2;border:1px solid #cf7f6a;color:#7a2f1f">R</span><span style="font:700 8px ui-monospace,monospace;color:#caa44e;background:#fff;border-radius:3px;padding:1px 4px">FOIL</span></div>
+            <h3 style="font:700 17px Helvetica;margin:0 0 2px;text-align:center">Ragavan, Nimble Pilferer</h3>
+            <div style="font:500 11px ui-monospace,monospace;color:#9a978d;text-align:center;margin-bottom:14px">MH2 · #138 · Mythic · foil</div>
+            <div style="display:flex;gap:8px;margin-bottom:12px"><div style="flex:1;background:#faf9f6;border:1px solid #ececea;border-radius:9px;padding:10px;text-align:center"><div style="font:700 17px Helvetica">$42</div><div style="font:600 8px ui-monospace,monospace;color:#9a978d">FOIL · 9d</div></div><div style="flex:1;background:#faf9f6;border:1px solid #ececea;border-radius:9px;padding:10px;text-align:center"><div style="font:700 17px Helvetica">×1</div><div style="font:600 8px ui-monospace,monospace;color:#9a978d">NM · EN</div></div></div>
+            <div style="background:#f1efe9;border-radius:9px;padding:10px 12px;margin-bottom:8px"><div style="font:600 9px ui-monospace,monospace;text-transform:uppercase;color:#9a978d">Reserved by</div><div style="font:600 12px Helvetica;color:#7a6a3a">Mono-Red Aggro (1)</div></div>
+            <div style="background:#f1efe9;border-radius:9px;padding:10px 12px"><div style="font:600 9px ui-monospace,monospace;text-transform:uppercase;color:#9a978d">Placement</div><div style="font:600 12px Helvetica">Premium · pg 3, back, pocket 3</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
