@@ -3,4 +3,19 @@
 .dolt/
 *.db
 .beads-credential-key
+
+# IDE
 .idea/
+*.iml
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+.metadata
+
+# Generated files
+*.g.dart
+*.freezed.dart
+*.gr.dart

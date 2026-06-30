@@ -1,0 +1,46 @@
+name: binder_manager
+description: "MTG collection tool focused on binder management"
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Routing
+  go_router: ^14.8.1
+
+  # Database (drift/SQLite)
+  drift: ^2.27.0
+  sqlite3_flutter_libs: ^0.5.32
+  sqlite3: ^2.7.4
+
+  # Networking & parsing
+  http: ^1.4.0
+  csv: ^6.0.0
+
+  # Platform utilities
+  path_provider: ^2.1.5
+  path: ^1.9.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+  # Code generation
+  drift_dev: ^2.27.0
+  build_runner: ^2.4.15
+  riverpod_generator: ^2.6.5
+  custom_lint: ^0.7.5
+  riverpod_lint: ^2.6.5
+
+flutter:
+  uses-material-design: true
