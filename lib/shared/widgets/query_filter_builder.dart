@@ -130,22 +130,24 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
       if (match.isNotEmpty) _selectedTypes.add(match.first);
     }
 
-    // Strip recognized structured tokens to find bare text
+    // Strip recognized structured tokens to find bare text. Prefixes are
+    // anchored to a token boundary so e.g. `s:` cannot match inside
+    // `is:borderless` and leave a stray "i" behind.
     var remaining = q
-        .replaceAll(RegExp(r'o:"[^"]*"'), '')
-        .replaceAll(RegExp(r'\([^)]*\)'), '') // grouped types
-        .replaceAll(RegExp(r'-c:\S+'), '')
-        .replaceAll(RegExp(r'c:\S+'), '')
-        .replaceAll(RegExp(r'-id:\S+'), '')
-        .replaceAll(RegExp(r'id:\S+'), '')
-        .replaceAll(RegExp(r't:\S+'), '')
-        .replaceAll(RegExp(r'usd[<>]=?\S+'), '')
-        .replaceAll(RegExp(r's:\S+'), '')
-        .replaceAll(RegExp(r'r:\S+'), '')
-        .replaceAll(RegExp(r'is:\S+'), '')
-        .replaceAll(RegExp(r'unused:\S+'), '')
-        .replaceAll(RegExp(r'have:\S+'), '')
-        .replaceAll(RegExp(r'\bOR\b', caseSensitive: false), '')
+        .replaceAll(RegExp(r'o:"[^"]*"'), ' ')
+        .replaceAll(RegExp(r'\([^)]*\)'), ' '); // grouped types
+    for (final prefix in [
+      '-c:', 'c:', '-id:', 'id:', 't:', 's:', 'r:',
+      'is:', 'unused:', 'have:',
+    ]) {
+      remaining = remaining.replaceAll(
+        RegExp('(^|\\s)${RegExp.escape(prefix)}\\S+'),
+        ' ',
+      );
+    }
+    remaining = remaining
+        .replaceAll(RegExp(r'(^|\s)usd[<>]=?\S+'), ' ')
+        .replaceAll(RegExp(r'\bOR\b', caseSensitive: false), ' ')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
     if (remaining.isNotEmpty) {

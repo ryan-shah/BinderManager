@@ -46,22 +46,55 @@
     // available (drift's preferred web storage). One reload is required the
     // first time so the page loads under the injected headers; a
     // sessionStorage flag prevents reload loops if isolation still fails.
-    if ('serviceWorker' in navigator && !window.crossOriginIsolated) {
-      navigator.serviceWorker
+    //
+    // The app bootstrap is deferred until the isolation decision is final —
+    // if the app booted before the reload, drift would create its database
+    // in the IndexedDB fallback and keep using it forever (drift prefers an
+    // existing database over a better storage implementation).
+    (function () {
+      function loadApp() {
+        var s = document.createElement('script');
+        s.src = 'flutter_bootstrap.js';
+        s.async = true;
+        document.body.appendChild(s);
+      }
+
+      var needsReload =
+        'serviceWorker' in navigator &&
+        !window.crossOriginIsolated &&
+        !sessionStorage.getItem('coiReloaded');
+
+      if (!needsReload) {
+        loadApp();
+        return;
+      }
+
+      var timeout = new Promise(function (resolve) {
+        setTimeout(resolve, 4000);
+      });
+      var ready = navigator.serviceWorker
         .register('coi_serviceworker.js')
-        .then(() => navigator.serviceWorker.ready)
-        .then(() => {
-          if (
-            !navigator.serviceWorker.controller &&
-            !sessionStorage.getItem('coiReloaded')
-          ) {
+        .then(function () { return navigator.serviceWorker.ready; })
+        .then(function () { return 'ready'; });
+
+      Promise.race([ready, timeout])
+        .then(function (result) {
+          if (result === 'ready') {
+            // The SW claims existing clients, but headers only apply to
+            // responses served through it — reload once to pick them up.
             sessionStorage.setItem('coiReloaded', '1');
             window.location.reload();
+          } else {
+            console.warn('COI service worker not ready in time; ' +
+                'continuing without cross-origin isolation.');
+            loadApp();
           }
         })
-        .catch((e) => console.warn('COI service worker failed:', e));
-    }
+        .catch(function (e) {
+          console.warn('COI service worker failed:', e);
+          loadApp();
+        });
+    })();
   </script>
-  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

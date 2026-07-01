@@ -128,6 +128,23 @@ void main() {
       expect(lastQuery, contains('c:'));
     });
 
+    testWidgets('is:borderless in initial query leaves name field empty',
+        (tester) async {
+      String? lastQuery;
+      await tester.pumpWidget(buildBuilder(
+        initialQuery: 'is:borderless',
+        onQueryChanged: (q) => lastQuery = q,
+      ));
+
+      // Recompile via a pip tap. The name field must not have picked up a
+      // stray "i" from the unanchored s: prefix matching inside "is:".
+      await tester.tap(find.text('G'));
+      await tester.pumpAndSettle();
+
+      expect(lastQuery, contains('is:borderless'));
+      expect(lastQuery, isNot(startsWith('i ')));
+    });
+
     testWidgets('id: in initial query activates identity mode',
         (tester) async {
       String? lastQuery;
