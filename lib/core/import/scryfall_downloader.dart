@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -88,20 +89,15 @@ class ScryfallDownloader {
 
     final totalBytes = streamedResponse.contentLength;
     var bytesReceived = 0;
-    final chunks = <List<int>>[];
+    final builder = BytesBuilder(copy: false);
 
     await for (final chunk in streamedResponse.stream) {
-      chunks.add(chunk);
+      builder.add(chunk);
       bytesReceived += chunk.length;
       onProgress?.call(DownloadProgress(bytesReceived, totalBytes));
     }
 
-    // Concatenate all chunks into a single byte list.
-    final result = <int>[];
-    for (final chunk in chunks) {
-      result.addAll(chunk);
-    }
-    return result;
+    return builder.takeBytes();
   }
 
   /// Releases underlying HTTP resources.
