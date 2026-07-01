@@ -145,6 +145,18 @@ void main() {
           finishes: 'nonfoil',
           priceUsd: 0.10,
         ));
+    await db.into(db.cards).insert(_makeCard(
+          scryfallId: 'sol-ring-1',
+          name: 'Sol Ring',
+          typeLine: 'Artifact',
+          oracleText: '{T}: Add {C}{C}.',
+          colors: '',
+          colorIdentity: '',
+          setCode: 'cmd',
+          rarity: 'uncommon',
+          finishes: 'nonfoil',
+          priceUsd: 3.00,
+        ));
   });
 
   tearDown(() async {
@@ -209,6 +221,32 @@ void main() {
       final names =
           await _queryNames(const FilterNode('c', FilterOp.eq, 'red'));
       expect(names, containsAll(['Lightning Bolt', 'Lightning Helix']));
+    });
+
+    test('c:C matches colorless cards (null and empty colors)', () async {
+      final names =
+          await _queryNames(const FilterNode('c', FilterOp.eq, 'C'));
+      expect(names, containsAll(['Forest', 'Sol Ring']));
+      expect(names, isNot(contains('Lightning Bolt')));
+    });
+
+    test('c:colorless matches colorless cards', () async {
+      final names =
+          await _queryNames(const FilterNode('c', FilterOp.eq, 'colorless'));
+      expect(names, containsAll(['Forest', 'Sol Ring']));
+    });
+
+    test('c:M matches multicolor cards', () async {
+      final names =
+          await _queryNames(const FilterNode('c', FilterOp.eq, 'M'));
+      expect(names, equals(['Lightning Helix']));
+    });
+
+    test('c:multicolor matches multicolor cards', () async {
+      final names =
+          await _queryNames(
+              const FilterNode('c', FilterOp.eq, 'multicolor'));
+      expect(names, equals(['Lightning Helix']));
     });
   });
 
@@ -497,6 +535,27 @@ void main() {
       final ast = parseQuery('-c:R r:common').ast!;
       final names = await _queryNames(ast);
       expect(names, equals(['Forest']));
+    });
+
+    test('(t:instant OR t:creature) c:R finds red instants and creatures',
+        () async {
+      final ast = parseQuery('(t:instant OR t:creature) c:R').ast!;
+      final names = await _queryNames(ast);
+      expect(names, containsAll(['Lightning Bolt', 'Lightning Helix']));
+      expect(names, isNot(contains('Tarmogoyf')));
+    });
+
+    test('unused:true is a pass-through (matches all)', () async {
+      final ast = parseQuery('unused:true').ast!;
+      final names = await _queryNames(ast);
+      expect(names.length, 6);
+    });
+
+    test('c:R unused:true applies only the color filter', () async {
+      final ast = parseQuery('c:R unused:true').ast!;
+      final names = await _queryNames(ast);
+      expect(names, containsAll(['Lightning Bolt', 'Lightning Helix']));
+      expect(names, hasLength(2));
     });
   });
 }

@@ -56,6 +56,9 @@ class QueryCompiler {
       'frame' => _compileFrame(node),
       'stamp' => _compileStamp(node),
       'finish' => _compileFinish(node),
+      // Phase 3 placeholders — pass through until user DB exists.
+      'unused' => const Constant(true),
+      'have' => const Constant(true),
       _ => throw UnsupportedError('Unknown filter field: ${node.field}'),
     };
   }
@@ -85,6 +88,10 @@ class QueryCompiler {
   /// Color matching: each character in the value must be present in the
   /// comma-separated color string. E.g. `c:WU` requires both W and U.
   ///
+  /// Special cases:
+  /// - `C` (colorless): matches cards with empty/null colors
+  /// - `M` (multicolor): matches cards with 2+ colors (contains a comma)
+  ///
   /// Uses COALESCE to handle nullable color columns: a null value is treated
   /// as an empty string so that NOT(c:R) correctly includes colorless cards.
   Expression<bool> _compileColor(
@@ -97,9 +104,28 @@ class QueryCompiler {
     }
 
     final coalesced = coalesce<String>([column, const Constant('')]);
-    Expression<bool> expr = coalesced.like('%${colors[0]}%');
-    for (var i = 1; i < colors.length; i++) {
-      expr = expr & coalesced.like('%${colors[i]}%');
+
+    // Colorless: match cards where the color column is empty/null.
+    if (colors.length == 1 && colors[0] == 'C') {
+      return coalesced.equals('');
+    }
+
+    // Multicolor: match cards with 2+ colors (the joined string contains
+    // at least one comma, e.g. "W,U").
+    if (colors.length == 1 && colors[0] == 'M') {
+      return coalesced.like('%,%');
+    }
+
+    // Filter out any C/M that got mixed in with real colors (e.g. "c:CM"
+    // doesn't make sense, but be defensive).
+    final realColors = colors.where((c) => c != 'C' && c != 'M').toList();
+    if (realColors.isEmpty) {
+      return const Constant(false);
+    }
+
+    Expression<bool> expr = coalesced.like('%${realColors[0]}%');
+    for (var i = 1; i < realColors.length; i++) {
+      expr = expr & coalesced.like('%${realColors[i]}%');
     }
     return expr;
   }
@@ -193,6 +219,7 @@ class QueryCompiler {
       'red': 'R',
       'green': 'G',
       'colorless': 'C',
+      'multicolor': 'M',
     };
 
     if (colorNames.containsKey(lower)) {

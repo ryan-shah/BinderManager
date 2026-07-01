@@ -544,4 +544,110 @@ void main() {
       );
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // Parenthesized groups
+  // ---------------------------------------------------------------------------
+
+  group('parenthesized groups', () {
+    test('(t:instant OR t:sorcery) parses as OrNode', () {
+      final result = parseQuery('(t:instant OR t:sorcery)');
+      expect(result.isSuccess, isTrue);
+      expect(
+        result.ast,
+        equals(const OrNode(
+          FilterNode('t', FilterOp.eq, 'instant'),
+          FilterNode('t', FilterOp.eq, 'sorcery'),
+        )),
+      );
+    });
+
+    test('c:R (t:instant OR t:sorcery) parses grouped OR with AND', () {
+      final result = parseQuery('c:R (t:instant OR t:sorcery)');
+      expect(result.isSuccess, isTrue);
+      expect(
+        result.ast,
+        equals(const AndNode([
+          FilterNode('c', FilterOp.eq, 'R'),
+          OrNode(
+            FilterNode('t', FilterOp.eq, 'instant'),
+            FilterNode('t', FilterOp.eq, 'sorcery'),
+          ),
+        ])),
+      );
+    });
+
+    test('negated group -(t:land) parses as NotNode', () {
+      final result = parseQuery('-(t:land)');
+      expect(result.isSuccess, isTrue);
+      expect(
+        result.ast,
+        equals(const NotNode(FilterNode('t', FilterOp.eq, 'land'))),
+      );
+    });
+
+    test('nested groups ((c:R OR c:U)) parse correctly', () {
+      final result = parseQuery('((c:R OR c:U))');
+      expect(result.isSuccess, isTrue);
+      expect(
+        result.ast,
+        equals(const OrNode(
+          FilterNode('c', FilterOp.eq, 'R'),
+          FilterNode('c', FilterOp.eq, 'U'),
+        )),
+      );
+    });
+
+    test('unclosed parenthesis produces error', () {
+      final result = parseQuery('(t:instant OR t:sorcery');
+      expect(result.isSuccess, isFalse);
+      expect(result.error, contains('parenthesis'));
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Phase 3 placeholder fields
+  // ---------------------------------------------------------------------------
+
+  group('placeholder fields', () {
+    test('unused:true parses as filter', () {
+      final result = parseQuery('unused:true');
+      expect(result.isSuccess, isTrue);
+      expect(
+        result.ast,
+        equals(const FilterNode('unused', FilterOp.eq, 'true')),
+      );
+    });
+
+    test('idle:true aliases to unused', () {
+      final result = parseQuery('idle:true');
+      expect(result.isSuccess, isTrue);
+      expect(
+        result.ast,
+        equals(const FilterNode('unused', FilterOp.eq, 'true')),
+      );
+    });
+
+    test('have:4 parses as filter', () {
+      final result = parseQuery('have:4');
+      expect(result.isSuccess, isTrue);
+      expect(
+        result.ast,
+        equals(const FilterNode('have', FilterOp.eq, '4')),
+      );
+    });
+
+    test('unused:true combined with other filters', () {
+      final result = parseQuery('c:R unused:true usd>5');
+      expect(result.isSuccess, isTrue);
+      expect(
+        result.ast,
+        equals(const AndNode([
+          FilterNode('c', FilterOp.eq, 'R'),
+          FilterNode('unused', FilterOp.eq, 'true'),
+          FilterNode('usd', FilterOp.gt, '5'),
+        ])),
+      );
+    });
+  });
 }

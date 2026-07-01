@@ -7,13 +7,14 @@
 /// - Explicit `OR` (case-insensitive)
 /// - Negation with `-` prefix: `-c:B`
 /// - Quoted values: `t:"legendary creature"`
+/// - Parenthesized groups: `(t:instant OR t:sorcery)`
 ///
 /// Grammar (informal):
 /// ```
 /// query      = orExpr*
 /// orExpr     = andExpr ('OR' andExpr)*
 /// andExpr    = atom+
-/// atom       = '-' atom | filter | quotedText | bareText
+/// atom       = '-' atom | '(' orExpr ')' | filter | quotedText | bareText
 /// filter     = field op value
 /// ```
 library;
@@ -60,6 +61,9 @@ const _fieldAliases = <String, String>{
   'frame': 'frame',
   'stamp': 'stamp',
   'finish': 'finish',
+  'unused': 'unused',
+  'idle': 'unused',
+  'have': 'have',
 };
 
 /// Parses a Scryfall-subset query string into an AST.
@@ -121,7 +125,7 @@ class _Parser {
   QueryNode _parseAndExpr() {
     final children = <QueryNode>[];
 
-    while (!_isAtEnd && !_isOrKeywordAhead()) {
+    while (!_isAtEnd && !_isOrKeywordAhead() && _peek() != ')') {
       children.add(_parseAtom());
       _skipWhitespace();
     }
@@ -133,7 +137,7 @@ class _Parser {
     return children.length == 1 ? children.first : AndNode(children);
   }
 
-  /// atom = '-' atom | filter | quotedText | bareText
+  /// atom = '-' atom | '(' orExpr ')' | filter | quotedText | bareText
   QueryNode _parseAtom() {
     _skipWhitespace();
 
@@ -145,12 +149,25 @@ class _Parser {
       final nextIdx = _pos + 1;
       if (nextIdx < _input.length) {
         final next = _input[nextIdx];
-        if (_isLetterOrQuote(next)) {
+        if (_isLetterOrQuote(next) || next == '(') {
           _pos++; // consume the '-'
           final child = _parseAtom();
           return NotNode(child);
         }
       }
+    }
+
+    // Parenthesized group
+    if (_peek() == '(') {
+      _pos++; // consume '('
+      _skipWhitespace();
+      final inner = _parseOrExpr();
+      _skipWhitespace();
+      if (_peek() != ')') {
+        throw _ParseError('Expected closing parenthesis', _pos);
+      }
+      _pos++; // consume ')'
+      return inner;
     }
 
     // Try to parse a filter (field:value or field>value etc.)
