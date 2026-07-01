@@ -62,7 +62,7 @@ lib/
   shared/
     widgets/                   # Reusable components (data_freshness_banner)
     providers/                 # Riverpod providers (corpus_provider)
-docs/
+design/
   DESIGN.md                    # Locked design decisions (D1-D12)
   UI_COMPONENTS.md             # Screen specs (13 screens + reusable components)
   STYLE_GUIDE.md               # Visual design tokens
@@ -71,6 +71,6 @@ Wireframes/                    # Mid-fi wireframes (exported HTML)
 
 ## Design Documents
 
-- **[DESIGN.md](docs/DESIGN.md)** — Product design with 12 locked decisions covering card identity, pricing, query engine, allocation, state model, and architecture
-- **[UI_COMPONENTS.md](docs/UI_COMPONENTS.md)** — Detailed specs for all 13 screens plus reusable component library
-- **[STYLE_GUIDE.md](docs/STYLE_GUIDE.md)** — Comprehensive visual tokens extracted from wireframes
+- **[DESIGN.md](design/DESIGN.md)** — Product design with 12 locked decisions covering card identity, pricing, query engine, allocation, state model, and architecture
+- **[UI_COMPONENTS.md](design/UI_COMPONENTS.md)** — Detailed specs for all 13 screens plus reusable component library
+- **[STYLE_GUIDE.md](design/STYLE_GUIDE.md)** — Comprehensive visual tokens extracted from wireframes
