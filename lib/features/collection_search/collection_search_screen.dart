@@ -463,7 +463,7 @@ class _CollectionSearchScreenState
     final mode = layoutModeOf(context);
 
     if (mode == LayoutMode.desktop) {
-      return _buildDesktop(state);
+      return Material(child: _buildDesktop(state));
     }
 
     return Scaffold(
