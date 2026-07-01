@@ -9,6 +9,7 @@ void main() {
     String? initialQuery,
   }) {
     return MaterialApp(
+      theme: ThemeData(splashFactory: NoSplash.splashFactory),
       home: Scaffold(
         body: SizedBox(
           width: 300,
