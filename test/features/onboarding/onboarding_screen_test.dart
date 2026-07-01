@@ -50,7 +50,10 @@ void main() {
         overrides: [
           corpusImportProvider.overrideWith((_) => fakeNotifier),
         ],
-        child: MaterialApp.router(routerConfig: router),
+        child: MaterialApp.router(
+          routerConfig: router,
+          theme: ThemeData(splashFactory: NoSplash.splashFactory),
+        ),
       ),
     );
 

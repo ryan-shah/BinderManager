@@ -62,7 +62,10 @@ void main() {
     }
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(
+        routerConfig: router,
+        theme: ThemeData(splashFactory: NoSplash.splashFactory),
+      ),
     );
     await tester.pumpAndSettle();
   }
@@ -99,7 +102,10 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(
+        routerConfig: router,
+        theme: ThemeData(splashFactory: NoSplash.splashFactory),
+      ),
     );
     await tester.pumpAndSettle();
   }
