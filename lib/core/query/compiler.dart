@@ -130,9 +130,21 @@ class QueryCompiler {
     return expr;
   }
 
-  /// Set code: exact match (lowercased).
+  /// Set code: exact match (lowercased). Supports comma-separated lists,
+  /// e.g. `s:mh2,mh3` matches cards from either set.
   Expression<bool> _compileSet(FilterNode node) {
-    return _cards.setCode.equals(node.value.toLowerCase());
+    final codes = node.value
+        .toLowerCase()
+        .split(',')
+        .where((c) => c.isNotEmpty)
+        .toList();
+    if (codes.isEmpty) {
+      return const Constant(false);
+    }
+    if (codes.length == 1) {
+      return _cards.setCode.equals(codes.first);
+    }
+    return _cards.setCode.isIn(codes);
   }
 
   /// Substring match using LIKE (case-insensitive for ASCII in SQLite).
@@ -179,7 +191,10 @@ class QueryCompiler {
       'fullart' => _cards.isFullart.equals(true),
       'promo' => _cards.isPromo.equals(true),
       'showcase' => frameCol.like('%showcase%'),
-      'borderless' => frameCol.like('%borderless%'),
+      // Scryfall stores borderless in border_color, not frame_effects.
+      'borderless' =>
+        coalesce<String>([_cards.borderColor, const Constant('')])
+            .equals('borderless'),
       _ => throw UnsupportedError('Unknown is: value: ${node.value}'),
     };
   }

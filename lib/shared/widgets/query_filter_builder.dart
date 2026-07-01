@@ -24,9 +24,13 @@ class QueryFilterBuilder extends StatefulWidget {
 }
 
 class QueryFilterBuilderState extends State<QueryFilterBuilder> {
-  // -- Color identity (tri-state per color) --
+  // -- Color (tri-state per color) --
   // 0 = unselected, 1 = selected, 2 = deselected
   late final List<int> _colorStates;
+
+  // -- Color match mode: false = colors (c:), true = identity (id:) --
+  // Identity matters for cards like Ghostfire (colorless, but red identity).
+  late bool _useIdentity;
 
   // -- Card types --
   static const _cardTypes = [
@@ -73,10 +77,14 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
   // -- Idle only --
   late bool _idleOnly;
 
+  // -- In collection only --
+  late bool _inCollectionOnly;
+
   @override
   void initState() {
     super.initState();
     _colorStates = List.filled(ManaPips.labels.length, 0);
+    _useIdentity = false;
     _selectedTypes = {};
     _priceMin = 0;
     _priceMax = _priceAbsMax;
@@ -86,6 +94,7 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
     _selectedTreatments = {};
     _oracleController = TextEditingController();
     _idleOnly = false;
+    _inCollectionOnly = false;
 
     if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
       _parseInitialQuery(widget.initialQuery!);
@@ -127,12 +136,15 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
         .replaceAll(RegExp(r'\([^)]*\)'), '') // grouped types
         .replaceAll(RegExp(r'-c:\S+'), '')
         .replaceAll(RegExp(r'c:\S+'), '')
+        .replaceAll(RegExp(r'-id:\S+'), '')
+        .replaceAll(RegExp(r'id:\S+'), '')
         .replaceAll(RegExp(r't:\S+'), '')
         .replaceAll(RegExp(r'usd[<>]=?\S+'), '')
         .replaceAll(RegExp(r's:\S+'), '')
         .replaceAll(RegExp(r'r:\S+'), '')
         .replaceAll(RegExp(r'is:\S+'), '')
         .replaceAll(RegExp(r'unused:\S+'), '')
+        .replaceAll(RegExp(r'have:\S+'), '')
         .replaceAll(RegExp(r'\bOR\b', caseSensitive: false), '')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
@@ -142,14 +154,17 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
 
     final tokens = q.split(RegExp(r'\s+'));
     for (final token in tokens) {
-      if (token.startsWith('c:')) {
-        final letters = token.substring(2).toUpperCase().split('');
+      if (token.startsWith('c:') || token.startsWith('id:')) {
+        if (token.startsWith('id:')) _useIdentity = true;
+        final value = token.substring(token.indexOf(':') + 1);
+        final letters = value.toUpperCase().split('');
         for (final l in letters) {
           final idx = ManaPips.labels.indexOf(l);
           if (idx >= 0) _colorStates[idx] = 1;
         }
-      } else if (token.startsWith('-c:')) {
-        final l = token.substring(3).toUpperCase();
+      } else if (token.startsWith('-c:') || token.startsWith('-id:')) {
+        if (token.startsWith('-id:')) _useIdentity = true;
+        final l = token.substring(token.indexOf(':') + 1).toUpperCase();
         final idx = ManaPips.labels.indexOf(l);
         if (idx >= 0) _colorStates[idx] = 2;
       } else if (token.startsWith('s:')) {
@@ -172,6 +187,8 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
         _priceMax = double.tryParse(token.substring(5)) ?? _priceAbsMax;
       } else if (token == 'unused:true') {
         _idleOnly = true;
+      } else if (token == 'have:true') {
+        _inCollectionOnly = true;
       }
     }
   }
@@ -187,16 +204,17 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
     final name = _nameController.text.trim();
     if (name.isNotEmpty) parts.add(name);
 
-    // Colors: selected letters joined into c:WUB
+    // Colors: selected letters joined into c:WUB (or id:WUB in identity mode)
+    final colorField = _useIdentity ? 'id' : 'c';
     final selected = <String>[];
     final deselected = <String>[];
     for (var i = 0; i < _colorStates.length; i++) {
       if (_colorStates[i] == 1) selected.add(ManaPips.labels[i]);
       if (_colorStates[i] == 2) deselected.add(ManaPips.labels[i]);
     }
-    if (selected.isNotEmpty) parts.add('c:${selected.join()}');
+    if (selected.isNotEmpty) parts.add('$colorField:${selected.join()}');
     for (final d in deselected) {
-      parts.add('-c:$d');
+      parts.add('-$colorField:$d');
     }
 
     // Types
@@ -237,6 +255,9 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
 
     // Idle only
     if (_idleOnly) parts.add('unused:true');
+
+    // In collection only
+    if (_inCollectionOnly) parts.add('have:true');
 
     return parts.join(' ');
   }
@@ -280,6 +301,30 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
     );
   }
 
+  Widget _colorModeChip(String label, {required bool useIdentity}) {
+    final isSelected = _useIdentity == useIdentity;
+    return ChoiceChip(
+      label: Text(label, style: AppTypography.bodySm.copyWith(
+        color: isSelected ? AppColors.neutral0 : AppColors.neutral700,
+      )),
+      selected: isSelected,
+      selectedColor: AppColors.neutral900,
+      backgroundColor: AppColors.neutral50,
+      side: BorderSide(
+        color: isSelected ? AppColors.neutral900 : AppColors.neutral200,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.md),
+      ),
+      showCheckmark: false,
+      onSelected: (_) {
+        if (_useIdentity == useIdentity) return;
+        setState(() => _useIdentity = useIdentity);
+        _emitQuery();
+      },
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Build
   // ---------------------------------------------------------------------------
@@ -314,8 +359,8 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
             onChanged: (_) => _emitQuery(),
           ),
 
-          // -- Color Identity --
-          _sectionLabel('Color Identity'),
+          // -- Color --
+          _sectionLabel('Color'),
           Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: List.generate(ManaPips.labels.length, (i) {
@@ -329,6 +374,16 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
                 ),
               );
             }),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // Colors match printed colors; identity matches deck-legality
+          // identity (e.g. Ghostfire is colorless but has red identity).
+          Row(
+            children: [
+              _colorModeChip('Colors', useIdentity: false),
+              const SizedBox(width: AppSpacing.sm),
+              _colorModeChip('Identity', useIdentity: true),
+            ],
           ),
 
           // -- Card Type --
@@ -526,8 +581,24 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
             onChanged: (_) => _emitQuery(),
           ),
 
-          // -- Idle Only --
+          // -- Status --
           _sectionLabel('Status'),
+          Row(
+            children: [
+              Switch(
+                value: _inCollectionOnly,
+                activeThumbColor: AppColors.neutral900,
+                onChanged: (value) {
+                  setState(() {
+                    _inCollectionOnly = value;
+                  });
+                  _emitQuery();
+                },
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text('In collection', style: AppTypography.bodySm),
+            ],
+          ),
           Row(
             children: [
               Switch(

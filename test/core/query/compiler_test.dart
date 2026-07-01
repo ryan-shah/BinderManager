@@ -35,6 +35,7 @@ CardsCompanion _makeCard({
   bool isPromo = false,
   String? frameEffects,
   String? securityStamp,
+  String? borderColor = 'black',
   String layout = 'normal',
   String releasedAt = '2023-01-01',
 }) {
@@ -64,6 +65,7 @@ CardsCompanion _makeCard({
     isPromo: Value(isPromo),
     frameEffects: Value(frameEffects),
     securityStamp: Value(securityStamp),
+    borderColor: Value(borderColor),
     layout: Value(layout),
     releasedAt: Value(releasedAt),
   );
@@ -156,6 +158,7 @@ void main() {
           rarity: 'uncommon',
           finishes: 'nonfoil',
           priceUsd: 3.00,
+          borderColor: 'borderless',
         ));
   });
 
@@ -278,6 +281,14 @@ void main() {
       final names =
           await _queryNames(const FilterNode('s', FilterOp.eq, 'mh2'));
       expect(names, equals(['Tarmogoyf']));
+    });
+
+    test('s:lea,mh2 matches cards from either set', () async {
+      final names =
+          await _queryNames(const FilterNode('s', FilterOp.eq, 'lea,mh2'));
+      expect(names, containsAll(['Lightning Bolt', 'Forest', 'Tarmogoyf']));
+      expect(names, isNot(contains('Lightning Helix')));
+      expect(names, isNot(contains('Sol Ring')));
     });
 
     test('set filter is case-insensitive', () async {
@@ -419,6 +430,12 @@ void main() {
       final names =
           await _queryNames(const FilterNode('is', FilterOp.eq, 'promo'));
       expect(names, isEmpty);
+    });
+
+    test('is:borderless matches borderless cards via border_color', () async {
+      final names = await _queryNames(
+          const FilterNode('is', FilterOp.eq, 'borderless'));
+      expect(names, equals(['Sol Ring']));
     });
 
     test('is:showcase matches showcase cards', () async {

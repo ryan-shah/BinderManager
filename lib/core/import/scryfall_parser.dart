@@ -198,6 +198,7 @@ class ScryfallParser {
       isPromo: Value(card['promo'] as bool? ?? false),
       frameEffects: Value(_joinList(card['frame_effects'])),
       securityStamp: Value(card['security_stamp'] as String?),
+      borderColor: Value(card['border_color'] as String?),
       layout: Value(card['layout'] as String? ?? ''),
       releasedAt: Value(card['released_at'] as String? ?? ''),
     );

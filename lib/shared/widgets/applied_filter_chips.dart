@@ -76,6 +76,12 @@ class AppliedFilterChips extends StatelessWidget {
     if (token.startsWith('-c:')) {
       return 'Exclude: ${token.substring(3)}';
     }
+    if (token.startsWith('id:')) {
+      return 'Identity: ${token.substring(3)}';
+    }
+    if (token.startsWith('-id:')) {
+      return 'Exclude identity: ${token.substring(4)}';
+    }
     if (token.startsWith('(') && token.endsWith(')')) {
       // Grouped types: (t:creature OR t:instant)
       final inner = token.substring(1, token.length - 1);
@@ -112,6 +118,9 @@ class AppliedFilterChips extends StatelessWidget {
     }
     if (token == 'unused:true') {
       return 'Idle only';
+    }
+    if (token == 'have:true') {
+      return 'In collection';
     }
     return token;
   }
