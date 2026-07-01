@@ -7,15 +7,17 @@ void main() {
   runApp(const ProviderScope(child: BinderManagerApp()));
 }
 
-class BinderManagerApp extends StatelessWidget {
+class BinderManagerApp extends ConsumerWidget {
   const BinderManagerApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+
     return MaterialApp.router(
       title: 'BinderManager',
       theme: buildAppTheme(),
-      routerConfig: appRouter,
+      routerConfig: router,
       debugShowCheckedModeBanner: false,
     );
   }
