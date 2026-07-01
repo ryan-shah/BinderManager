@@ -102,7 +102,10 @@ void main() {
         const a = CardIdentity(id1, Finish.foil);
         const b = CardIdentity(id1, Finish.foil);
         const c = CardIdentity(id1, Finish.nonfoil);
-        final set = {a, b, c};
+        final set = <CardIdentity>{};
+        set.add(a);
+        set.add(b);
+        set.add(c);
         // a and b collapse; c is distinct.
         expect(set.length, 2);
       });

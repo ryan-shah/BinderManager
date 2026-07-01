@@ -4,7 +4,7 @@ A Magic: The Gathering collection tool focused on **binder management**. Given a
 
 ## Current Status
 
-**Phase 1 complete — corpus pipeline + app shell.**
+**Phase 2 complete — query engine + collection search UI.**
 
 ### What's implemented
 - **Corpus data pipeline:** Scryfall Default Cards bulk download with streaming parse, batch insert into drift/SQLite database. Platform-conditional connection factory (native SQLite + sqlite3.wasm/OPFS for web).
@@ -13,9 +13,13 @@ A Magic: The Gathering collection tool focused on **binder management**. Given a
 - **Router with auth guard:** GoRouter with onboarding redirect when corpus hasn't been downloaded.
 - **Design token theme:** Warm-neutral palette, WUBRG+CM mana pip colors, two-voice typography (Helvetica + monospace), spacing, shadows, binder skeuomorphic tokens.
 - **Riverpod providers:** Corpus database singleton, corpus readiness check, import pipeline with progress state.
+- **Query engine:** Recursive descent parser for Scryfall-subset grammar (`c:`, `t:`, `s:`, `o:`, `r:`, `usd>`, `is:`, `frame:`, `stamp:`, `finish:`, `-` negation, `OR`, quoted strings). AST nodes, drift SQL compiler, QueryEngine facade with pagination.
+- **Collection search screen:** Desktop filter rail (280px, collapsible) + mobile bottom sheet. Query bar, applied filter chips, sort control (6 modes), responsive card grid.
+- **Reusable widgets:** ManaPip (WUBRG+CM, tri-state), CardTile (compact/row), QueryFilterBuilder (color pips, type chips, price slider, set/rarity/treatment), AppliedFilterChips.
+- **CI/CD:** GitHub Actions — Flutter web deploy to GitHub Pages, Claude Code Review on PRs, Claude Code on @mentions.
 
 ### What's next
-- **Phase 2:** Query engine (Scryfall-subset parser, AST, SQL compiler) + collection search screen UI
+- **Phase 3:** ManaBox CSV import, user database, decklist import, reservation engine
 
 ## Tech Stack
 - **Flutter + Dart** (single codebase, web + Android)
@@ -52,16 +56,21 @@ lib/
       scryfall_parser.dart     # JSON stream parse + batch insert
     models/
       card_identity.dart       # CardIdentity (scryfallId + finish)
+    query/
+      ast.dart                 # Query AST nodes (Text, Filter, And, Or, Not)
+      parser.dart              # Recursive descent Scryfall-subset parser
+      compiler.dart            # AST → drift SQL WHERE expressions
+      query_engine.dart        # Facade: parse + compile + execute
   features/
     shell/                     # App shell (sidebar/bottom nav)
     onboarding/                # First-run corpus download flow
     binders_list/              # (placeholder)
-    collection_search/         # (placeholder)
+    collection_search/         # Search screen with filter rail/sheet
     decks/                     # (placeholder)
     settings/                  # (placeholder)
   shared/
-    widgets/                   # Reusable components (data_freshness_banner)
-    providers/                 # Riverpod providers (corpus_provider)
+    widgets/                   # ManaPip, CardTile, QueryFilterBuilder, AppliedFilterChips, etc.
+    providers/                 # Riverpod providers (corpus, query engine, search)
 design/
   DESIGN.md                    # Locked design decisions (D1-D12)
   UI_COMPONENTS.md             # Screen specs (13 screens + reusable components)
