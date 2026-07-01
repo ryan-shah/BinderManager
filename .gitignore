@@ -23,3 +23,7 @@ build/
 *.g.dart
 *.freezed.dart
 *.gr.dart
+
+# dart compile js artifacts (keep .js, ignore deps/map)
+web/drift_worker.js.deps
+web/drift_worker.js.map
