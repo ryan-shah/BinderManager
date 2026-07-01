@@ -1,62 +1,28 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
+import '../../shared/providers/corpus_provider.dart';
 
-
-/// Full-screen onboarding overlay shown on first launch.
-///
-/// Presents a centered card that lets the user trigger a (placeholder) card
-/// data download. Agent A will replace the fake progress with the real
-/// Scryfall import pipeline.
-class OnboardingScreen extends ConsumerStatefulWidget {
+class OnboardingScreen extends ConsumerWidget {
   const OnboardingScreen({super.key});
 
   @override
-  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final importState = ref.watch(corpusImportProvider);
 
-class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  bool _downloading = false;
-  double _progress = 0;
-  Timer? _timer;
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  void _startDownload() {
-    setState(() {
-      _downloading = true;
-      _progress = 0;
+    // Navigate to main app once import completes
+    ref.listen(corpusImportProvider, (prev, next) {
+      if (next.complete) {
+        ref.invalidate(corpusReadyProvider);
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (context.mounted) context.go('/binders');
+        });
+      }
     });
 
-    // Simulate fake progress: 0 -> 100% over ~3 seconds (30 ticks x 100ms).
-    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-      setState(() {
-        _progress += 1 / 30;
-        if (_progress >= 1.0) {
-          _progress = 1.0;
-          timer.cancel();
-          // Navigate to the main app after a short pause.
-          Future.delayed(const Duration(milliseconds: 400), () {
-            if (mounted) {
-              context.go('/binders');
-            }
-          });
-        }
-      });
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.neutral50,
       body: Center(
@@ -75,24 +41,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Title
                     Text(
                       'Welcome to BinderManager',
                       style: AppTypography.headingXl,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: AppSpacing.sm),
-
-                    // Subtitle
                     Text(
                       'Download card data to get started',
-                      style:
-                          AppTypography.body.copyWith(color: AppColors.neutral600),
+                      style: AppTypography.body
+                          .copyWith(color: AppColors.neutral600),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: AppSpacing.lg),
-
-                    // Size info
                     Text(
                       '~150 MB of card data from Scryfall',
                       style: AppTypography.bodyXs
@@ -101,31 +62,57 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     ),
                     const SizedBox(height: AppSpacing.xl),
 
-                    // Web consent note
                     if (kIsWeb) ...[
                       _WebConsentNote(),
                       const SizedBox(height: AppSpacing.lg),
                     ],
 
-                    // Download button — hidden once download starts
-                    if (!_downloading)
+                    // Error state
+                    if (importState.error != null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: AppColors.statusRemoveBg,
+                          border:
+                              Border.all(color: AppColors.statusRemoveBorder),
+                          borderRadius: BorderRadius.circular(AppRadii.md),
+                        ),
+                        child: Text(
+                          importState.error!,
+                          style: AppTypography.bodyXs
+                              .copyWith(color: AppColors.statusRemoveText),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                    ],
+
+                    // Download button — shown when idle or after error
+                    if (importState.phase == 'idle' ||
+                        importState.error != null)
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _startDownload,
-                          child: const Text('Download Card Data'),
+                          onPressed: () {
+                            ref.read(corpusImportProvider.notifier).runImport();
+                          },
+                          child: Text(importState.error != null
+                              ? 'Retry Download'
+                              : 'Download Card Data'),
                         ),
                       ),
 
                     // Progress section
-                    if (_downloading) ...[
+                    if (importState.phase != 'idle' &&
+                        importState.error == null &&
+                        !importState.complete) ...[
                       const SizedBox(height: AppSpacing.sm),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(AppRadii.sm),
                         child: SizedBox(
                           height: 8,
                           child: LinearProgressIndicator(
-                            value: _progress,
+                            value: importState.progress,
                             backgroundColor: AppColors.neutral150,
                             valueColor: const AlwaysStoppedAnimation<Color>(
                                 AppColors.neutral900),
@@ -134,9 +121,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'Downloading... ${(_progress * 100).round()}%',
+                        _statusText(importState),
                         style: AppTypography.meta
                             .copyWith(color: AppColors.neutral500),
+                      ),
+                    ],
+
+                    // Complete state
+                    if (importState.complete) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      Icon(Icons.check_circle,
+                          color: AppColors.statusAddText, size: 32),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        importState.phase,
+                        style: AppTypography.meta
+                            .copyWith(color: AppColors.statusAddText),
                       ),
                     ],
                   ],
@@ -148,9 +148,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ),
     );
   }
+
+  String _statusText(CorpusImportState state) {
+    if (state.progress != null) {
+      return '${state.phase}... ${(state.progress! * 100).round()}%';
+    }
+    return '${state.phase}...';
+  }
 }
 
-/// Amber banner shown only on web to explain persistent storage requirements.
 class _WebConsentNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
