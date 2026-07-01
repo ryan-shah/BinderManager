@@ -26,6 +26,7 @@ class _CollectionSearchScreenState
     extends ConsumerState<CollectionSearchScreen> {
   late final TextEditingController _queryController;
   bool _filterRailOpen = true;
+  int _filterBuilderKey = 0;
 
   @override
   void initState() {
@@ -47,6 +48,11 @@ class _CollectionSearchScreenState
     ref.read(searchProvider.notifier).search(query);
   }
 
+  void _submitFromSearchBar(String query) {
+    _submitQuery(query);
+    setState(() => _filterBuilderKey++);
+  }
+
   void _onFilterQueryChanged(String filterQuery) {
     _queryController.text = filterQuery;
     _submitQuery(filterQuery);
@@ -54,6 +60,7 @@ class _CollectionSearchScreenState
 
   void _onChipRemoved(String updatedQuery) {
     _queryController.text = updatedQuery;
+    setState(() => _filterBuilderKey++);
     _submitQuery(updatedQuery);
   }
 
@@ -80,7 +87,7 @@ class _CollectionSearchScreenState
                   icon: const Icon(Icons.clear, size: 18),
                   onPressed: () {
                     _queryController.clear();
-                    _submitQuery('');
+                    _submitFromSearchBar('');
                   },
                 )
               : null,
@@ -100,7 +107,7 @@ class _CollectionSearchScreenState
           ),
         ),
         style: AppTypography.query,
-        onSubmitted: _submitQuery,
+        onSubmitted: _submitFromSearchBar,
         onChanged: (_) {
           // Rebuild to show/hide clear button.
           setState(() {});
@@ -286,6 +293,7 @@ class _CollectionSearchScreenState
                 const Divider(),
                 Expanded(
                   child: QueryFilterBuilder(
+                    key: ValueKey('filter-$_filterBuilderKey'),
                     initialQuery: state.query,
                     onQueryChanged: _onFilterQueryChanged,
                   ),
@@ -441,6 +449,7 @@ class _CollectionSearchScreenState
                 const Divider(),
                 Expanded(
                   child: QueryFilterBuilder(
+                    key: ValueKey('filter-$_filterBuilderKey'),
                     initialQuery: state.query,
                     onQueryChanged: _onFilterQueryChanged,
                   ),

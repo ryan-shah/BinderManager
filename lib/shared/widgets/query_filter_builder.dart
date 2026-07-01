@@ -67,6 +67,9 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
   // -- Oracle text --
   late final TextEditingController _oracleController;
 
+  // -- Name (free text) --
+  late final TextEditingController _nameController;
+
   // -- Idle only --
   late bool _idleOnly;
 
@@ -77,6 +80,7 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
     _selectedTypes = {};
     _priceMin = 0;
     _priceMax = _priceAbsMax;
+    _nameController = TextEditingController();
     _setController = TextEditingController();
     _selectedRarities = {};
     _selectedTreatments = {};
@@ -90,6 +94,7 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _setController.dispose();
     _oracleController.dispose();
     super.dispose();
@@ -100,6 +105,41 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
   // ---------------------------------------------------------------------------
 
   void _parseInitialQuery(String q) {
+    // Extract oracle text first (quoted, may contain spaces)
+    final oracleMatch = RegExp(r'o:"([^"]*)"').firstMatch(q);
+    if (oracleMatch != null) {
+      _oracleController.text = oracleMatch.group(1)!;
+    }
+
+    // Extract type patterns (including parenthesized groups)
+    final typeMatches = RegExp(r't:(\w+)').allMatches(q);
+    for (final m in typeMatches) {
+      final val = m.group(1)!;
+      final match = _cardTypes.where(
+        (t) => t.toLowerCase() == val.toLowerCase(),
+      );
+      if (match.isNotEmpty) _selectedTypes.add(match.first);
+    }
+
+    // Strip recognized structured tokens to find bare text
+    var remaining = q
+        .replaceAll(RegExp(r'o:"[^"]*"'), '')
+        .replaceAll(RegExp(r'\([^)]*\)'), '') // grouped types
+        .replaceAll(RegExp(r'-c:\S+'), '')
+        .replaceAll(RegExp(r'c:\S+'), '')
+        .replaceAll(RegExp(r't:\S+'), '')
+        .replaceAll(RegExp(r'usd[<>]=?\S+'), '')
+        .replaceAll(RegExp(r's:\S+'), '')
+        .replaceAll(RegExp(r'r:\S+'), '')
+        .replaceAll(RegExp(r'is:\S+'), '')
+        .replaceAll(RegExp(r'unused:\S+'), '')
+        .replaceAll(RegExp(r'\bOR\b', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    if (remaining.isNotEmpty) {
+      _nameController.text = remaining;
+    }
+
     final tokens = q.split(RegExp(r'\s+'));
     for (final token in tokens) {
       if (token.startsWith('c:')) {
@@ -134,20 +174,6 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
         _idleOnly = true;
       }
     }
-    // Oracle text: extract o:"..." pattern
-    final oracleMatch = RegExp(r'o:"([^"]*)"').firstMatch(q);
-    if (oracleMatch != null) {
-      _oracleController.text = oracleMatch.group(1)!;
-    }
-    // Type: extract t: patterns or (t:x OR t:y)
-    final typeMatches = RegExp(r't:(\w+)').allMatches(q);
-    for (final m in typeMatches) {
-      final val = m.group(1)!;
-      final match = _cardTypes.where(
-        (t) => t.toLowerCase() == val.toLowerCase(),
-      );
-      if (match.isNotEmpty) _selectedTypes.add(match.first);
-    }
   }
 
   // ---------------------------------------------------------------------------
@@ -156,6 +182,10 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
 
   String _compileQuery() {
     final parts = <String>[];
+
+    // Name (free text)
+    final name = _nameController.text.trim();
+    if (name.isNotEmpty) parts.add(name);
 
     // Colors: selected letters joined into c:WUB
     final selected = <String>[];
@@ -264,6 +294,26 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // -- Name --
+          _sectionLabel('Name'),
+          TextField(
+            controller: _nameController,
+            decoration: InputDecoration(
+              hintText: 'e.g. lightning bolt',
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadii.md),
+                borderSide: const BorderSide(color: AppColors.neutral200),
+              ),
+            ),
+            style: AppTypography.query,
+            onChanged: (_) => _emitQuery(),
+          ),
+
           // -- Color Identity --
           _sectionLabel('Color Identity'),
           Row(
