@@ -397,6 +397,9 @@ void main() {
       final names =
           await _queryNames(const FilterNode('is', FilterOp.eq, 'foil'));
       expect(names, containsAll(['Lightning Helix', 'Tarmogoyf']));
+      // Must NOT match nonfoil-only cards.
+      expect(names, isNot(contains('Lightning Bolt')));
+      expect(names, isNot(contains('Jace, the Mind Sculptor')));
     });
 
     test('is:etched matches cards with etched finish', () async {
@@ -448,6 +451,14 @@ void main() {
       expect(names,
           containsAll(['Tarmogoyf', 'Jace, the Mind Sculptor']));
     });
+
+    test('-stamp:oval includes cards with null security stamp', () async {
+      final names = await _queryNames(
+          const NotNode(FilterNode('stamp', FilterOp.eq, 'oval')));
+      expect(names, containsAll(['Lightning Bolt', 'Forest', 'Sol Ring']));
+      expect(names, isNot(contains('Tarmogoyf')));
+      expect(names, isNot(contains('Jace, the Mind Sculptor')));
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -459,6 +470,7 @@ void main() {
       final names = await _queryNames(
           const FilterNode('finish', FilterOp.eq, 'foil'));
       expect(names, containsAll(['Lightning Helix', 'Tarmogoyf']));
+      expect(names, isNot(contains('Lightning Bolt')));
     });
 
     test('finish:etched matches cards with etched finish', () async {

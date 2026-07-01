@@ -174,8 +174,8 @@ class QueryCompiler {
     final frameCol =
         coalesce<String>([_cards.frameEffects, const Constant('')]);
     return switch (node.value.toLowerCase()) {
-      'foil' => _cards.finishes.like('%foil%'),
-      'etched' => _cards.finishes.like('%etched%'),
+      'foil' => _compileFinishToken('foil'),
+      'etched' => _compileFinishToken('etched'),
       'fullart' => _cards.isFullart.equals(true),
       'promo' => _cards.isPromo.equals(true),
       'showcase' => frameCol.like('%showcase%'),
@@ -190,14 +190,27 @@ class QueryCompiler {
     return col.like('%${_escapeLike(node.value.toLowerCase())}%');
   }
 
-  /// Security stamp: exact match.
+  /// Security stamp: exact match with COALESCE for nullable column.
   Expression<bool> _compileStamp(FilterNode node) {
-    return _cards.securityStamp.equals(node.value.toLowerCase());
+    return coalesce<String>([_cards.securityStamp, const Constant('')])
+        .equals(node.value.toLowerCase());
   }
 
-  /// Finish: substring match on finishes column.
+  /// Finish: comma-delimited token match on finishes column.
   Expression<bool> _compileFinish(FilterNode node) {
-    return _cards.finishes.like('%${_escapeLike(node.value.toLowerCase())}%');
+    return _compileFinishToken(node.value.toLowerCase());
+  }
+
+  /// Matches a single finish token in the comma-separated finishes column
+  /// without false positives (e.g. "foil" must not match "nonfoil").
+  Expression<bool> _compileFinishToken(String token) {
+    final col = coalesce<String>([_cards.finishes, const Constant('')]);
+    // Match: exact value, start of list ("token,..."), end of list ("...,token"),
+    // or middle of list ("...,token,...").
+    return col.equals(token) |
+        col.like('$token,%') |
+        col.like('%,$token') |
+        col.like('%,$token,%');
   }
 
   // ---- Helpers --------------------------------------------------------------
