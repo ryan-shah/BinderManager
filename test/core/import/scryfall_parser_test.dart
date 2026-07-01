@@ -409,6 +409,32 @@ void main() {
       expect(count, 0);
     });
 
+    test('cardLimit stops parsing after the limit', () async {
+      final cards = List.generate(
+        100,
+        (i) => makeScryfallCard(id: 'lim-$i', name: 'Card $i'),
+      );
+      final count = await parser.parseFromStream(
+        toJsonStream(cards),
+        cardLimit: 25,
+      );
+      expect(count, 25);
+      expect(await db.cardCount(), 25);
+    });
+
+    test('cardLimit larger than input imports everything', () async {
+      final cards = List.generate(
+        10,
+        (i) => makeScryfallCard(id: 'lim2-$i', name: 'Card $i'),
+      );
+      final count = await parser.parseFromStream(
+        toJsonStream(cards),
+        cardLimit: 500,
+      );
+      expect(count, 10);
+      expect(await db.cardCount(), 10);
+    });
+
     test('handles cards with strings containing braces and quotes', () async {
       final stream = toJsonStream([
         makeScryfallCard(

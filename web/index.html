@@ -41,6 +41,27 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
+  <script>
+    // Register the COOP/COEP service worker so OPFS + SharedArrayBuffer are
+    // available (drift's preferred web storage). One reload is required the
+    // first time so the page loads under the injected headers; a
+    // sessionStorage flag prevents reload loops if isolation still fails.
+    if ('serviceWorker' in navigator && !window.crossOriginIsolated) {
+      navigator.serviceWorker
+        .register('coi_serviceworker.js')
+        .then(() => navigator.serviceWorker.ready)
+        .then(() => {
+          if (
+            !navigator.serviceWorker.controller &&
+            !sessionStorage.getItem('coiReloaded')
+          ) {
+            sessionStorage.setItem('coiReloaded', '1');
+            window.location.reload();
+          }
+        })
+        .catch((e) => console.warn('COI service worker failed:', e));
+    }
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

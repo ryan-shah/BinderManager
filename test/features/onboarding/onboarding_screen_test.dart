@@ -13,10 +13,12 @@ class FakeImportNotifier extends StateNotifier<CorpusImportState>
       : super(initial ?? const CorpusImportState());
 
   bool runImportCalled = false;
+  int? lastCardLimit;
 
   @override
-  Future<void> runImport() async {
+  Future<void> runImport({int? cardLimit}) async {
     runImportCalled = true;
+    lastCardLimit = cardLimit;
   }
 }
 
@@ -86,6 +88,17 @@ void main() {
       await tester.pump();
 
       expect(notifier.runImportCalled, isTrue);
+    });
+
+    testWidgets('debug quick-import button passes cardLimit', (tester) async {
+      final notifier = await pumpOnboarding(tester);
+
+      // kDebugMode is true under flutter test, so the button is visible.
+      await tester.tap(find.textContaining('Quick import'));
+      await tester.pump();
+
+      expect(notifier.runImportCalled, isTrue);
+      expect(notifier.lastCardLimit, 5000);
     });
 
     testWidgets('shows progress bar during download', (tester) async {

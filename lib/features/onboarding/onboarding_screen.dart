@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -89,7 +89,7 @@ class OnboardingScreen extends ConsumerWidget {
 
                     // Download button — shown when idle or after error
                     if (importState.phase == 'idle' ||
-                        importState.error != null)
+                        importState.error != null) ...[
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -101,6 +101,24 @@ class OnboardingScreen extends ConsumerWidget {
                               : 'Download Card Data'),
                         ),
                       ),
+                      // Debug-only quick import: stops after 5k cards so
+                      // dev iteration doesn't need the full 150 MB corpus.
+                      if (kDebugMode) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        TextButton(
+                          onPressed: () {
+                            ref
+                                .read(corpusImportProvider.notifier)
+                                .runImport(cardLimit: 5000);
+                          },
+                          child: Text(
+                            'Quick import — 5,000 cards (debug)',
+                            style: AppTypography.bodyXs
+                                .copyWith(color: AppColors.neutral500),
+                          ),
+                        ),
+                      ],
+                    ],
 
                     // Progress section
                     if (importState.phase != 'idle' &&
@@ -150,10 +168,24 @@ class OnboardingScreen extends ConsumerWidget {
   }
 
   String _statusText(CorpusImportState state) {
-    if (state.progress != null) {
-      return '${state.phase}... ${(state.progress! * 100).round()}%';
+    final phase = state.progress != null
+        ? '${state.phase}... ${(state.progress! * 100).round()}%'
+        : '${state.phase}...';
+    if (state.cardsImported > 0) {
+      return '$phase • ${_formatCount(state.cardsImported)} cards imported';
     }
-    return '${state.phase}...';
+    return phase;
+  }
+
+  /// Formats 12500 as "12,500".
+  static String _formatCount(int n) {
+    final s = n.toString();
+    final buf = StringBuffer();
+    for (var i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
+      buf.write(s[i]);
+    }
+    return buf.toString();
   }
 }
 

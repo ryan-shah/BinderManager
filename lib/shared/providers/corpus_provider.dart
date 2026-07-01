@@ -43,8 +43,11 @@ class CorpusImportState {
   /// Human-readable label for the current phase.
   final String phase;
 
-  /// Progress fraction in [0.0, 1.0], or null if indeterminate.
+  /// Download progress fraction in [0.0, 1.0], or null if indeterminate.
   final double? progress;
+
+  /// Number of cards inserted into the database so far.
+  final int cardsImported;
 
   /// Non-null when the import has failed.
   final String? error;
@@ -55,6 +58,7 @@ class CorpusImportState {
   const CorpusImportState({
     this.phase = 'idle',
     this.progress,
+    this.cardsImported = 0,
     this.error,
     this.complete = false,
   });
@@ -62,12 +66,14 @@ class CorpusImportState {
   CorpusImportState copyWith({
     String? phase,
     double? progress,
+    int? cardsImported,
     String? error,
     bool? complete,
   }) {
     return CorpusImportState(
       phase: phase ?? this.phase,
       progress: progress,
+      cardsImported: cardsImported ?? this.cardsImported,
       error: error,
       complete: complete ?? this.complete,
     );
@@ -79,7 +85,8 @@ class CorpusImportState {
     if (complete) return 'CorpusImportState(complete)';
     final pct =
         progress != null ? ' ${(progress! * 100).toStringAsFixed(1)}%' : '';
-    return 'CorpusImportState($phase$pct)';
+    final cards = cardsImported > 0 ? ' $cardsImported cards' : '';
+    return 'CorpusImportState($phase$pct$cards)';
   }
 }
 
@@ -100,7 +107,10 @@ class CorpusImportNotifier extends StateNotifier<CorpusImportState> {
   ///
   /// Uses streaming: the HTTP response is piped directly into the parser
   /// so the full ~150 MB payload never sits in memory at once.
-  Future<void> runImport() async {
+  ///
+  /// [cardLimit] stops the import (and aborts the download) after roughly
+  /// that many cards — used by the debug quick-import mode.
+  Future<void> runImport({int? cardLimit}) async {
     if (state.phase != 'idle' &&
         state.phase != 'error' &&
         !state.complete) {
@@ -110,21 +120,24 @@ class CorpusImportNotifier extends StateNotifier<CorpusImportState> {
     final downloader = ScryfallDownloader();
 
     try {
-      // Phase 1: Open streaming download
-      state = const CorpusImportState(phase: 'downloading', progress: 0.0);
+      // Phase 1: Resolve the bulk-data URI and open the streaming download.
+      state = const CorpusImportState(phase: 'contacting Scryfall');
 
       final dl = await downloader.downloadStream();
 
-      // Phase 2: Clear existing data before streaming in new data
-      state = const CorpusImportState(phase: 'clearing');
+      // Phase 2: Clear existing data before streaming in new data.
+      state = const CorpusImportState(phase: 'preparing database');
       await _db.clearAllCards();
 
-      // Phase 3: Stream-parse directly from HTTP → parser → DB
+      // Phase 3: Stream-parse directly from HTTP → parser → DB.
+      // Download and import run concurrently on the same stream, so a
+      // single phase carries both the byte fraction and the card count.
       state = const CorpusImportState(phase: 'downloading', progress: 0.0);
 
       final parser = ScryfallParser(_db);
       final totalInserted = await parser.parseFromStream(
         dl.stream,
+        cardLimit: cardLimit,
         onBytesReceived: (bytes) {
           final fraction = dl.totalBytes != null && dl.totalBytes! > 0
               ? bytes / dl.totalBytes!
@@ -132,18 +145,21 @@ class CorpusImportNotifier extends StateNotifier<CorpusImportState> {
           state = CorpusImportState(
             phase: 'downloading',
             progress: fraction,
+            cardsImported: state.cardsImported,
           );
         },
         onProgress: (processed) {
           state = CorpusImportState(
-            phase: 'importing ($processed cards)',
-            progress: null,
+            phase: 'downloading',
+            progress: state.progress,
+            cardsImported: processed,
           );
         },
       );
 
       state = CorpusImportState(
         phase: 'complete ($totalInserted cards)',
+        cardsImported: totalInserted,
         complete: true,
       );
     } catch (e) {
