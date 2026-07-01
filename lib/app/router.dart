@@ -17,7 +17,8 @@ const _shellPaths = ['/binders', '/collection', '/decks', '/settings'];
 /// Accepts a [WidgetRef] so it can read the [corpusReadyProvider] for redirect
 /// logic. The router is exposed via [appRouterProvider] for use with Riverpod.
 GoRouter buildRouter(Ref ref) {
-  final corpusReady = ref.watch(corpusReadyProvider);
+  final corpusReadyAsync = ref.watch(corpusReadyProvider);
+  final corpusReady = corpusReadyAsync.valueOrNull ?? false;
 
   return GoRouter(
     initialLocation: '/binders',

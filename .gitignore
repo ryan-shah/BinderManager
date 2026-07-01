@@ -7,6 +7,10 @@
 # IDE
 .idea/
 *.iml
+.gradle/
+
+# Claude Code worktrees
+.claude/worktrees/
 
 # Flutter/Dart
 .dart_tool/
