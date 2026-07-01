@@ -28,6 +28,7 @@ A Magic: The Gathering collection tool focused on **binder management**. Given a
 ```bash
 flutter pub get
 dart run build_runner build    # generate drift database code
+dart run tool/setup_web.dart   # download sqlite3.wasm + compile drift worker (web only)
 flutter run -d chrome          # web
 flutter run -d android         # Android emulator/device
 ```
