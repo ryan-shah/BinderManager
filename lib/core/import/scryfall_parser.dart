@@ -4,12 +4,14 @@ import 'package:drift/drift.dart';
 
 import '../database/corpus_database.dart';
 
-/// Parses a Scryfall Default Cards JSON payload and batch-inserts cards into
-/// the [CorpusDatabase].
+/// Parses Scryfall Default Cards JSON and batch-inserts cards into the
+/// [CorpusDatabase].
 ///
-/// The JSON is a single top-level array: `[{card}, {card}, ...]`.
-/// This parser decodes the JSON and processes cards in batches to keep
-/// memory and transaction overhead manageable.
+/// Supports two modes:
+/// - [parseAndInsert]: accepts pre-loaded bytes (tests / native).
+/// - [parseFromStream]: accepts a byte stream and parses incrementally
+///   without buffering the full payload — required for web where ~150 MB
+///   exceeds practical memory limits.
 class ScryfallParser {
   /// Number of rows to insert per transaction batch.
   static const int batchSize = 500;
@@ -18,13 +20,116 @@ class ScryfallParser {
 
   ScryfallParser(this._db);
 
-  /// Parses [jsonBytes] (the raw Scryfall JSON) and inserts all cards into the
-  /// database.
+  // -----------------------------------------------------------------------
+  // Streaming API (web-safe)
+  // -----------------------------------------------------------------------
+
+  /// Parses a byte stream of Scryfall JSON and inserts cards as they arrive.
   ///
-  /// [onProgress] is called after each batch with the total number of cards
-  /// processed so far.
+  /// The JSON must be a top-level array: `[{card}, {card}, ...]`.
+  /// Individual card objects are extracted via brace-depth tracking, then
+  /// decoded and batch-inserted. Peak memory is proportional to
+  /// [batchSize] × card-size, not the full payload.
+  ///
+  /// [onBytesReceived] fires on every network chunk with cumulative bytes
+  /// (useful for download progress when piping directly from HTTP).
+  ///
+  /// [onProgress] fires after each batch with total cards processed.
   ///
   /// Returns the total number of cards inserted.
+  Future<int> parseFromStream(
+    Stream<List<int>> byteStream, {
+    void Function(int bytesReceived)? onBytesReceived,
+    void Function(int cardsProcessed)? onProgress,
+  }) async {
+    final buffer = StringBuffer();
+    var braceDepth = 0;
+    var inString = false;
+    var escaped = false;
+    var foundArray = false;
+
+    var pendingBatch = <Map<String, dynamic>>[];
+    var totalProcessed = 0;
+    var bytesReceived = 0;
+
+    await for (final chunk in byteStream.transform(utf8.decoder)) {
+      bytesReceived += utf8.encode(chunk).length;
+      onBytesReceived?.call(bytesReceived);
+
+      for (var i = 0; i < chunk.length; i++) {
+        final char = chunk[i];
+
+        // Scan for the opening '[' of the top-level array.
+        if (!foundArray) {
+          if (char == '[') foundArray = true;
+          continue;
+        }
+
+        // Inside a string literal — only watch for escape and closing quote.
+        if (inString) {
+          buffer.writeCharCode(char.codeUnitAt(0));
+          if (escaped) {
+            escaped = false;
+          } else if (char == r'\') {
+            escaped = true;
+          } else if (char == '"') {
+            inString = false;
+          }
+          continue;
+        }
+
+        // Outside a string.
+        switch (char) {
+          case '{':
+            braceDepth++;
+            buffer.writeCharCode(char.codeUnitAt(0));
+          case '}':
+            buffer.writeCharCode(char.codeUnitAt(0));
+            braceDepth--;
+            if (braceDepth == 0) {
+              // Completed one card object.
+              final card =
+                  jsonDecode(buffer.toString()) as Map<String, dynamic>;
+              pendingBatch.add(card);
+              buffer.clear();
+
+              if (pendingBatch.length >= batchSize) {
+                await _insertBatch(pendingBatch);
+                totalProcessed += pendingBatch.length;
+                onProgress?.call(totalProcessed);
+                pendingBatch = <Map<String, dynamic>>[];
+              }
+            }
+          case '"':
+            inString = true;
+            buffer.writeCharCode(char.codeUnitAt(0));
+          default:
+            if (braceDepth > 0) {
+              buffer.writeCharCode(char.codeUnitAt(0));
+            }
+          // Whitespace / commas outside braces are skipped.
+        }
+      }
+    }
+
+    // Flush remaining cards.
+    if (pendingBatch.isNotEmpty) {
+      await _insertBatch(pendingBatch);
+      totalProcessed += pendingBatch.length;
+      onProgress?.call(totalProcessed);
+    }
+
+    return totalProcessed;
+  }
+
+  // -----------------------------------------------------------------------
+  // In-memory API (tests / native)
+  // -----------------------------------------------------------------------
+
+  /// Parses [jsonBytes] (the raw Scryfall JSON) and inserts all cards.
+  ///
+  /// Suitable for tests and native platforms where memory is not
+  /// constrained. On web, prefer [parseFromStream].
   Future<int> parseAndInsert(
     List<int> jsonBytes, {
     void Function(int cardsProcessed)? onProgress,
@@ -38,19 +143,28 @@ class ScryfallParser {
       final end = (i + batchSize > list.length) ? list.length : i + batchSize;
       final batch = list.sublist(i, end);
 
-      await _db.batch((b) {
-        for (final item in batch) {
-          final card = item as Map<String, dynamic>;
-          final companion = _mapToCompanion(card);
-          b.insert(_db.cards, companion, mode: InsertMode.insertOrReplace);
-        }
-      });
+      await _insertBatch(
+        batch.cast<Map<String, dynamic>>(),
+      );
 
       totalProcessed = end;
       onProgress?.call(totalProcessed);
     }
 
     return totalProcessed;
+  }
+
+  // -----------------------------------------------------------------------
+  // Shared helpers
+  // -----------------------------------------------------------------------
+
+  Future<void> _insertBatch(List<Map<String, dynamic>> cards) async {
+    await _db.batch((b) {
+      for (final card in cards) {
+        final companion = _mapToCompanion(card);
+        b.insert(_db.cards, companion, mode: InsertMode.insertOrReplace);
+      }
+    });
   }
 
   /// Maps a single Scryfall card JSON object to a [CardsCompanion].
@@ -90,7 +204,6 @@ class ScryfallParser {
   }
 
   /// Joins a JSON list of strings into a comma-separated string.
-  /// Returns null if the input is null or not a list.
   static String? _joinList(dynamic value) {
     if (value is List) {
       return value.cast<String>().join(',');
@@ -99,7 +212,6 @@ class ScryfallParser {
   }
 
   /// Parses a Scryfall price string (e.g. "12.34") into a double.
-  /// Returns null if the value is null or not parseable.
   static double? _parsePrice(dynamic value) {
     if (value == null) return null;
     if (value is num) return value.toDouble();

@@ -63,6 +63,18 @@ List<int> toJsonBytes(List<Map<String, dynamic>> cards) {
   return utf8.encode(jsonEncode(cards));
 }
 
+/// Creates a byte stream from a list of cards, split into chunks.
+Stream<List<int>> toJsonStream(
+  List<Map<String, dynamic>> cards, {
+  int chunkSize = 1024,
+}) async* {
+  final bytes = toJsonBytes(cards);
+  for (var i = 0; i < bytes.length; i += chunkSize) {
+    final end = (i + chunkSize > bytes.length) ? bytes.length : i + chunkSize;
+    yield bytes.sublist(i, end);
+  }
+}
+
 void main() {
   late CorpusDatabase db;
   late ScryfallParser parser;
@@ -364,6 +376,116 @@ void main() {
       expect(await db.cardCount(), 1);
       final card = await db.getCard('dup-id');
       expect(card!.name, 'Second Version');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Streaming API (parseFromStream)
+  // ---------------------------------------------------------------------------
+
+  group('parseFromStream', () {
+    test('single card inserts 1 row', () async {
+      final stream = toJsonStream([makeScryfallCard(id: 'stream-1')]);
+      final count = await parser.parseFromStream(stream);
+      expect(count, 1);
+      expect(await db.cardCount(), 1);
+    });
+
+    test('multiple cards insert correctly', () async {
+      final stream = toJsonStream([
+        makeScryfallCard(id: 's1', name: 'Alpha'),
+        makeScryfallCard(id: 's2', name: 'Beta'),
+        makeScryfallCard(id: 's3', name: 'Gamma'),
+      ]);
+      final count = await parser.parseFromStream(stream);
+      expect(count, 3);
+      final card = await db.getCard('s2');
+      expect(card!.name, 'Beta');
+    });
+
+    test('empty array inserts 0 rows', () async {
+      final stream = toJsonStream([]);
+      final count = await parser.parseFromStream(stream);
+      expect(count, 0);
+    });
+
+    test('handles cards with strings containing braces and quotes', () async {
+      final stream = toJsonStream([
+        makeScryfallCard(
+          id: 'tricky',
+          name: 'Test "Card"',
+          oracleText: r'Create a {1} token. "Go!" said the {wizard}.',
+        ),
+      ]);
+      final count = await parser.parseFromStream(stream);
+      expect(count, 1);
+      final card = await db.getCard('tricky');
+      expect(card!.name, 'Test "Card"');
+    });
+
+    test('fires onProgress after each batch', () async {
+      final cards = List.generate(
+        501,
+        (i) => makeScryfallCard(id: 'sp-$i', name: 'Card $i'),
+      );
+      final progressValues = <int>[];
+      await parser.parseFromStream(
+        toJsonStream(cards),
+        onProgress: (count) => progressValues.add(count),
+      );
+      expect(progressValues, [500, 501]);
+    });
+
+    test('fires onBytesReceived with cumulative byte counts', () async {
+      final byteCounts = <int>[];
+      final stream = toJsonStream(
+        [makeScryfallCard(id: 'br-1')],
+        chunkSize: 64,
+      );
+      await parser.parseFromStream(
+        stream,
+        onBytesReceived: (bytes) => byteCounts.add(bytes),
+      );
+      expect(byteCounts, isNotEmpty);
+      // Each value should be >= the previous (monotonically increasing).
+      for (var i = 1; i < byteCounts.length; i++) {
+        expect(byteCounts[i], greaterThanOrEqualTo(byteCounts[i - 1]));
+      }
+    });
+
+    test('handles small chunk sizes splitting mid-object', () async {
+      final stream = toJsonStream(
+        [makeScryfallCard(id: 'tiny-chunk', name: 'Chunked Card')],
+        chunkSize: 16,
+      );
+      final count = await parser.parseFromStream(stream);
+      expect(count, 1);
+      final card = await db.getCard('tiny-chunk');
+      expect(card!.name, 'Chunked Card');
+    });
+
+    test('all fields are mapped correctly (same as in-memory)', () async {
+      final stream = toJsonStream([
+        makeScryfallCard(
+          id: 'full-stream',
+          name: 'Streamed Card',
+          colors: ['W', 'U'],
+          finishes: ['nonfoil', 'foil'],
+          prices: {'usd': '9.99', 'usd_foil': '19.99'},
+          imageUris: {
+            'small': 'https://img.scryfall.com/s.jpg',
+            'normal': 'https://img.scryfall.com/n.jpg',
+          },
+        ),
+      ]);
+      await parser.parseFromStream(stream);
+      final card = await db.getCard('full-stream');
+      expect(card!.name, 'Streamed Card');
+      expect(card.colors, 'W,U');
+      expect(card.finishes, 'nonfoil,foil');
+      expect(card.priceUsd, 9.99);
+      expect(card.priceUsdFoil, 19.99);
+      expect(card.imageUriSmall, 'https://img.scryfall.com/s.jpg');
     });
   });
 }

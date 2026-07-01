@@ -224,6 +224,50 @@ void main() {
       downloader.close();
     });
 
+    test('downloadStream returns stream and totalBytes', () async {
+      const payload = '[{"id":"card-1"}]';
+      final payloadBytes = utf8.encode(payload);
+
+      final client = MockClient((request) async {
+        if (request.url.toString() == 'https://api.scryfall.com/bulk-data') {
+          return http.Response(_bulkDataCatalog(), 200);
+        }
+        return http.Response(payload, 200, headers: {
+          'content-length': '${payloadBytes.length}',
+        });
+      });
+
+      final downloader = ScryfallDownloader(client: client);
+      final dl = await downloader.downloadStream();
+
+      expect(dl.totalBytes, payloadBytes.length);
+
+      // Consume the stream and verify content.
+      final chunks = <int>[];
+      await for (final chunk in dl.stream) {
+        chunks.addAll(chunk);
+      }
+      expect(utf8.decode(chunks), payload);
+
+      downloader.close();
+    });
+
+    test('downloadStream throws on non-200 from download URI', () async {
+      final client = MockClient((request) async {
+        if (request.url.toString() == 'https://api.scryfall.com/bulk-data') {
+          return http.Response(_bulkDataCatalog(), 200);
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final downloader = ScryfallDownloader(client: client);
+      expect(
+        () => downloader.downloadStream(),
+        throwsA(isA<ScryfallDownloadException>()),
+      );
+      downloader.close();
+    });
+
     test('progress reports null fraction when Content-Length is absent',
         () async {
       const payload = 'some data';

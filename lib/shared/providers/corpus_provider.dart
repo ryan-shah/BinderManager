@@ -98,50 +98,45 @@ class CorpusImportNotifier extends StateNotifier<CorpusImportState> {
 
   /// Runs the full Scryfall download + parse + insert pipeline.
   ///
-  /// Updates [state] throughout so the UI can display progress.
+  /// Uses streaming: the HTTP response is piped directly into the parser
+  /// so the full ~150 MB payload never sits in memory at once.
   Future<void> runImport() async {
     if (state.phase != 'idle' &&
         state.phase != 'error' &&
         !state.complete) {
-      // Already running.
       return;
     }
 
     final downloader = ScryfallDownloader();
 
     try {
-      // Phase 1: Download
+      // Phase 1: Open streaming download
       state = const CorpusImportState(phase: 'downloading', progress: 0.0);
 
-      final bytes = await downloader.download(
-        onProgress: (p) {
-          state = CorpusImportState(
-            phase: 'downloading',
-            progress: p.fraction,
-          );
-        },
-      );
+      final dl = await downloader.downloadStream();
 
-      // Phase 2: Clear existing data
+      // Phase 2: Clear existing data before streaming in new data
       state = const CorpusImportState(phase: 'clearing');
       await _db.clearAllCards();
 
-      // Phase 3: Parse & insert
-      state = const CorpusImportState(phase: 'parsing', progress: 0.0);
+      // Phase 3: Stream-parse directly from HTTP → parser → DB
+      state = const CorpusImportState(phase: 'downloading', progress: 0.0);
 
       final parser = ScryfallParser(_db);
-
-      // We don't know the total card count until we parse, so estimate
-      // using the byte-decoded JSON list length (known after full decode
-      // inside parseAndInsert). Progress is reported per-batch.
-      final totalInserted = await parser.parseAndInsert(
-        bytes,
-        onProgress: (processed) {
-          // We don't have the total yet at callback time, so show raw count.
-          // After the first progress call we could estimate, but a simple
-          // "cards processed" display is fine for v1.
+      final totalInserted = await parser.parseFromStream(
+        dl.stream,
+        onBytesReceived: (bytes) {
+          final fraction = dl.totalBytes != null && dl.totalBytes! > 0
+              ? bytes / dl.totalBytes!
+              : null;
           state = CorpusImportState(
-            phase: 'parsing ($processed cards)',
+            phase: 'downloading',
+            progress: fraction,
+          );
+        },
+        onProgress: (processed) {
+          state = CorpusImportState(
+            phase: 'importing ($processed cards)',
             progress: null,
           );
         },

@@ -29,15 +29,28 @@ class DownloadProgress {
   }
 }
 
+/// A streaming download handle for Scryfall bulk data.
+///
+/// Provides the raw byte [stream] for consumption without buffering the
+/// entire payload in memory, plus [totalBytes] for progress tracking.
+class ScryfallDownload {
+  /// The raw byte stream from the HTTP response body.
+  final Stream<List<int>> stream;
+
+  /// Expected total bytes from Content-Length, or null if unknown.
+  final int? totalBytes;
+
+  ScryfallDownload({required this.stream, this.totalBytes});
+}
+
 /// Downloads the Scryfall Default Cards bulk JSON.
 ///
 /// 1. Hits the Scryfall bulk-data endpoint to discover the download URI.
-/// 2. Stream-downloads the JSON, reporting progress via [onProgress].
-/// 3. Returns the complete bytes of the JSON file.
+/// 2. Returns a [ScryfallDownload] with the byte stream and size metadata.
 ///
-/// For a ~150 MB download this will hold the full payload in memory. If
-/// memory pressure becomes an issue, consider writing to a temp file and
-/// returning its path instead.
+/// The caller is responsible for consuming the stream. For large payloads
+/// (~150 MB), pipe the stream directly into a parser rather than buffering
+/// all bytes in memory.
 class ScryfallDownloader {
   static const _bulkDataUrl = 'https://api.scryfall.com/bulk-data';
 
@@ -70,12 +83,11 @@ class ScryfallDownloader {
     );
   }
 
-  /// Downloads the Default Cards JSON, calling [onProgress] periodically.
+  /// Opens a streaming download of the Default Cards JSON.
   ///
-  /// Returns the raw bytes of the JSON payload.
-  Future<List<int>> download({
-    void Function(DownloadProgress progress)? onProgress,
-  }) async {
+  /// Returns a [ScryfallDownload] whose [ScryfallDownload.stream] yields
+  /// byte chunks as they arrive. Consume the stream to drive the download.
+  Future<ScryfallDownload> downloadStream() async {
     final uri = await _resolveDownloadUri();
 
     final request = http.Request('GET', uri);
@@ -87,14 +99,28 @@ class ScryfallDownloader {
       );
     }
 
-    final totalBytes = streamedResponse.contentLength;
+    return ScryfallDownload(
+      stream: streamedResponse.stream,
+      totalBytes: streamedResponse.contentLength,
+    );
+  }
+
+  /// Downloads the Default Cards JSON into memory.
+  ///
+  /// Convenience wrapper around [downloadStream] for tests and native
+  /// platforms where memory is not constrained. On web, prefer
+  /// [downloadStream] to avoid holding ~150 MB in a single allocation.
+  Future<List<int>> download({
+    void Function(DownloadProgress progress)? onProgress,
+  }) async {
+    final dl = await downloadStream();
     var bytesReceived = 0;
     final builder = BytesBuilder(copy: false);
 
-    await for (final chunk in streamedResponse.stream) {
+    await for (final chunk in dl.stream) {
       builder.add(chunk);
       bytesReceived += chunk.length;
-      onProgress?.call(DownloadProgress(bytesReceived, totalBytes));
+      onProgress?.call(DownloadProgress(bytesReceived, dl.totalBytes));
     }
 
     return builder.takeBytes();
