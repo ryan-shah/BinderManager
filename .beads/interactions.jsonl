@@ -1,0 +1,2 @@
+{"id":"int-1c4e3278","kind":"field_change","created_at":"2026-07-01T02:01:03.369756Z","actor":"Ryan Shah","issue_id":"BinderManager-7wx","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Phase 1 complete, PR #1 opened"}}
+{"id":"int-f194c6df","kind":"field_change","created_at":"2026-07-01T02:01:03.6132558Z","actor":"Ryan Shah","issue_id":"BinderManager-swq","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Phase 1 complete, PR #1 opened"}}
