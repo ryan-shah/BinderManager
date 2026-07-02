@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +8,6 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/allocation/reservation.dart';
 import '../../core/database/corpus_database.dart';
-import '../../core/database/tables/deck_tables.dart';
 import '../../core/database/user_database.dart';
 import '../../core/decks/deck_repository.dart';
 import '../../core/import/decklist_parser.dart';
