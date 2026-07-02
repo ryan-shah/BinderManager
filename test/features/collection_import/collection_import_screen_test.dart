@@ -28,6 +28,9 @@ class FakeCollectionImportNotifier extends StateNotifier<CollectionImportState>
   var resetCalled = false;
 
   @override
+  void Function()? get onCommitted => null;
+
+  @override
   Future<void> loadFile(String fileName, Uint8List bytes) async {
     loadFileCalls.add(fileName);
   }

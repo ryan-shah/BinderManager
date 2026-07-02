@@ -6,7 +6,10 @@ library;
 
 import 'package:drift/drift.dart';
 
+import '../allocation/reservation.dart';
 import '../database/corpus_database.dart';
+import '../database/user_database.dart';
+import 'ast.dart';
 import 'compiler.dart';
 import 'parser.dart';
 
@@ -47,7 +50,12 @@ class QueryResult {
 class QueryEngine {
   final CorpusDatabase _db;
 
-  QueryEngine(this._db);
+  /// Durable user data (collection stacks, decks). When present, `have:`
+  /// and `unused:` compile against real owned/idle quantities; when null
+  /// they match nothing (empty collection).
+  final UserDatabase? _userDb;
+
+  QueryEngine(this._db, {UserDatabase? userDb}) : _userDb = userDb;
 
   /// Parse and execute a query string, returning matching cards.
   ///
@@ -77,7 +85,16 @@ class QueryEngine {
       return const QueryResult();
     }
 
-    final compiler = QueryCompiler(_db.cards);
+    // Resolve the collection snapshot only when the query actually uses
+    // have:/unused: — fetched per search, never cached, so results are
+    // always consistent with the latest imports and deck edits.
+    ReservationSummary? collection;
+    final userDb = _userDb;
+    if (userDb != null && _usesCollectionFields(ast)) {
+      collection = await _loadReservations(userDb);
+    }
+
+    final compiler = QueryCompiler(_db.cards, collection: collection);
     final whereExpr = compiler.compile(ast);
 
     // Count total matches.
@@ -106,5 +123,22 @@ class QueryEngine {
   /// and UI feedback.
   ParseResult parse(String query) {
     return parseQuery(query);
+  }
+
+  /// Whether the AST contains a `have:` or `unused:` filter anywhere.
+  static bool _usesCollectionFields(QueryNode node) => switch (node) {
+        FilterNode(:final field) => field == 'have' || field == 'unused',
+        AndNode(:final children) => children.any(_usesCollectionFields),
+        OrNode(:final left, :final right) =>
+          _usesCollectionFields(left) || _usesCollectionFields(right),
+        NotNode(:final child) => _usesCollectionFields(child),
+        TextNode() => false,
+      };
+
+  static Future<ReservationSummary> _loadReservations(UserDatabase db) async {
+    final stacks = await db.select(db.stacks).get();
+    final decks = await db.select(db.decks).get();
+    final entries = await db.select(db.deckEntries).get();
+    return computeReservations(stacks: stacks, decks: decks, entries: entries);
   }
 }

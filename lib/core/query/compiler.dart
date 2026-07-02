@@ -7,6 +7,7 @@ library;
 
 import 'package:drift/drift.dart';
 
+import '../allocation/reservation.dart';
 import '../database/corpus_database.dart';
 import 'ast.dart';
 
@@ -21,7 +22,14 @@ import 'ast.dart';
 class QueryCompiler {
   final $CardsTable _cards;
 
-  QueryCompiler(this._cards);
+  /// Owned/idle quantities per printing, resolved from the user DB.
+  ///
+  /// When null (no user DB in play), `have:`/`unused:` match nothing —
+  /// an empty collection owns nothing and idles nothing.
+  final ReservationSummary? _collection;
+
+  QueryCompiler(this._cards, {ReservationSummary? collection})
+      : _collection = collection;
 
   /// Compiles a [QueryNode] into a drift boolean expression suitable for
   /// use in a `.where()` clause.
@@ -56,13 +64,73 @@ class QueryCompiler {
       'frame' => _compileFrame(node),
       'stamp' => _compileStamp(node),
       'finish' => _compileFinish(node),
-      // Phase 3 placeholders — until the user DB exists the collection is
-      // empty, so nothing is owned (have:) and nothing is idle (unused:),
-      // whatever the value. Replace with user-DB subqueries in Phase 3.
-      'unused' => const Constant(false),
-      'have' => const Constant(false),
+      'unused' => _compileCollectionCount(node, _collection?.idleOf),
+      'have' => _compileCollectionCount(node, _collection?.ownedOf),
       _ => throw UnsupportedError('Unknown filter field: ${node.field}'),
     };
+  }
+
+  /// Compiles `have:`/`unused:` against per-printing collection counts.
+  ///
+  /// [countOf] maps a scryfallId to its owned (`have:`) or idle
+  /// (`unused:`) quantity; null means no user DB is wired in, so nothing
+  /// matches. Supports boolean values (`have:true`) and numeric
+  /// thresholds (`have>=2`, `unused:3`).
+  Expression<bool> _compileCollectionCount(
+    FilterNode node,
+    int Function(String scryfallId)? countOf,
+  ) {
+    if (countOf == null) return const Constant(false);
+
+    final bool Function(int count) matches;
+    final value = node.value.toLowerCase();
+    if (value == 'true') {
+      matches = (count) => count > 0;
+    } else if (value == 'false') {
+      matches = (count) => count == 0;
+    } else {
+      final n = int.tryParse(node.value);
+      if (n == null) return const Constant(false);
+      matches = switch (node.op) {
+        FilterOp.eq => (count) => count == n,
+        FilterOp.neq => (count) => count != n,
+        FilterOp.gt => (count) => count > n,
+        FilterOp.gte => (count) => count >= n,
+        FilterOp.lt => (count) => count < n,
+        FilterOp.lte => (count) => count <= n,
+      };
+    }
+
+    // Cards absent from the collection have count 0. When 0 satisfies the
+    // predicate (have:false, unused<2, …) the matching set is unbounded —
+    // express it as NOT IN the violating set instead.
+    final universe = _collection!.ownedByPrinting.keys;
+    if (matches(0)) {
+      final violating = {
+        for (final id in universe)
+          if (!matches(countOf(id))) id,
+      };
+      return _scryfallIdIn(violating).not();
+    }
+    final satisfying = {
+      for (final id in universe)
+        if (matches(countOf(id))) id,
+    };
+    return _scryfallIdIn(satisfying);
+  }
+
+  /// `scryfall_id IN (...)` that scales past SQLite's bind-variable limit.
+  ///
+  /// Small sets use bound variables; larger sets inline string literals,
+  /// because the variable limit is per statement — chunked ORs would not
+  /// dodge it.
+  Expression<bool> _scryfallIdIn(Set<String> ids) {
+    if (ids.isEmpty) return const Constant(false);
+    if (ids.length <= 500) {
+      return _cards.scryfallId.isIn(ids.toList());
+    }
+    final literals = ids.map((id) => "'${id.replaceAll("'", "''")}'").join(',');
+    return CustomExpression<bool>('cards.scryfall_id IN ($literals)');
   }
 
   /// AndNode: combine children with `&`.

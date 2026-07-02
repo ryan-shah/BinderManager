@@ -9,6 +9,7 @@ import '../../core/import/collection_importer.dart';
 import '../../core/import/manabox_parser.dart';
 import '../../core/models/card_identity.dart';
 import 'corpus_provider.dart';
+import 'search_provider.dart';
 import 'user_database_provider.dart';
 
 /// Where the import flow currently is.
@@ -68,11 +69,16 @@ class CollectionImportState {
 /// Drives the ManaBox CSV import flow:
 /// pick file → parse → review (map/ignore unmatched, choose mode) → commit.
 class CollectionImportNotifier extends StateNotifier<CollectionImportState> {
-  CollectionImportNotifier(this._corpus, this._userDb)
+  CollectionImportNotifier(this._corpus, this._userDb, {this.onCommitted})
       : super(const CollectionImportState());
 
   final CorpusDatabase _corpus;
   final UserDatabase _userDb;
+
+  /// Invoked after a successful commit — the collection changed, so
+  /// anything derived from it (e.g. `have:`/`unused:` search results)
+  /// should refresh.
+  final void Function()? onCommitted;
 
   late final ManaBoxParser _parser = ManaBoxParser(_corpus);
   late final CollectionImporter _importer = CollectionImporter(_userDb);
@@ -219,6 +225,7 @@ class CollectionImportNotifier extends StateNotifier<CollectionImportState> {
     try {
       await _importer.commit(parseResult.matched, state.mode);
       state = state.copyWith(phase: CollectionImportPhase.done);
+      onCommitted?.call();
     } catch (e) {
       state = state.copyWith(
         phase: CollectionImportPhase.error,
@@ -290,5 +297,9 @@ final collectionImportProvider =
         (ref) {
   final corpus = ref.watch(corpusDatabaseProvider);
   final userDb = ref.watch(userDatabaseProvider);
-  return CollectionImportNotifier(corpus, userDb);
+  return CollectionImportNotifier(
+    corpus,
+    userDb,
+    onCommitted: () => ref.read(searchProvider.notifier).refresh(),
+  );
 });

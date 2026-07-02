@@ -13,6 +13,7 @@ import '../../core/decks/deck_repository.dart';
 import '../../core/import/decklist_parser.dart';
 import '../../core/models/card_identity.dart';
 import 'corpus_provider.dart';
+import 'search_provider.dart';
 import 'user_database_provider.dart';
 
 // ---------------------------------------------------------------------------
@@ -215,12 +216,18 @@ class DeckImportState {
 /// Drives the decklist import flow: parse → preview → fidelity/unowned
 /// prompts → commit.
 class DeckImportNotifier extends StateNotifier<DeckImportState> {
-  DeckImportNotifier(this._parser, this._repository, this._db)
+  DeckImportNotifier(this._parser, this._repository, this._db,
+      {this.onCommitted})
       : super(const DeckImportState());
 
   final DecklistParser _parser;
   final DeckRepository _repository;
   final UserDatabase _db;
+
+  /// Invoked after a successful commit — reservations changed, so
+  /// anything derived from them (e.g. `unused:` search results) should
+  /// refresh.
+  final void Function()? onCommitted;
 
   static const _uuid = Uuid();
 
@@ -600,6 +607,7 @@ class DeckImportNotifier extends StateNotifier<DeckImportState> {
         phase: DeckImportPhase.done,
         createdDeckId: deckId,
       );
+      onCommitted?.call();
     } catch (e) {
       state = state.copyWith(
         phase: DeckImportPhase.error,
@@ -620,5 +628,6 @@ final deckImportProvider =
     DecklistParser(ref.watch(corpusDatabaseProvider)),
     ref.watch(deckRepositoryProvider),
     ref.watch(userDatabaseProvider),
+    onCommitted: () => ref.read(searchProvider.notifier).refresh(),
   );
 });

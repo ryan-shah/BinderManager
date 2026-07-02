@@ -3,6 +3,9 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:binder_manager/core/database/corpus_database.dart';
+import 'package:binder_manager/core/database/tables/deck_tables.dart';
+import 'package:binder_manager/core/database/user_database.dart';
+import 'package:binder_manager/core/models/card_identity.dart';
 import 'package:binder_manager/core/query/query_engine.dart';
 
 /// Creates a [CardsCompanion] with sensible defaults so tests only need to
@@ -279,6 +282,113 @@ void main() {
       final result = engine.parse('');
       expect(result.isSuccess, isTrue);
       expect(result.ast, isNull);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // have:/unused: end-to-end with a user database
+  // ---------------------------------------------------------------------------
+
+  group('search() with a user database', () {
+    late UserDatabase userDb;
+    late QueryEngine engineWithUser;
+
+    final now = DateTime.utc(2026, 7, 2);
+
+    Future<void> seedStack(String scryfallId, int quantity) async {
+      await userDb.into(userDb.stacks).insert(StacksCompanion.insert(
+            id: 'stack-$scryfallId',
+            scryfallId: scryfallId,
+            finish: Finish.nonfoil,
+            quantity: quantity,
+            provenance: 'manabox',
+            createdAt: now,
+            updatedAt: now,
+          ));
+    }
+
+    Future<void> seedDeck(
+      String deckId,
+      Map<String, int> cards, {
+      bool isAssembled = true,
+    }) async {
+      await userDb.into(userDb.decks).insert(DecksCompanion.insert(
+            id: deckId,
+            name: deckId,
+            isAssembled: Value(isAssembled),
+            createdAt: now,
+            updatedAt: now,
+          ));
+      for (final entry in cards.entries) {
+        await userDb.into(userDb.deckEntries).insert(
+              DeckEntriesCompanion.insert(
+                id: 'entry-$deckId-${entry.key}',
+                deckId: deckId,
+                scryfallId: entry.key,
+                cardName: entry.key,
+                quantity: entry.value,
+                section: DeckSection.main,
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+      }
+    }
+
+    setUp(() {
+      userDb = UserDatabase(NativeDatabase.memory());
+      engineWithUser = QueryEngine(db, userDb: userDb);
+    });
+
+    tearDown(() async {
+      await userDb.close();
+    });
+
+    test('acceptance: unused:true usd>5 returns only idle cards over \$5',
+        () async {
+      // Owned: Tarmogoyf ($15) x3, Jace ($30) x1, Bolt ($2.50) x4.
+      await seedStack('goyf-1', 3);
+      await seedStack('jace-1', 1);
+      await seedStack('bolt-1', 4);
+      // An assembled deck fully reserves Jace, partially reserves Tarmogoyf.
+      await seedDeck('deck-1', {'jace-1': 1, 'goyf-1': 2});
+
+      final result = await engineWithUser.search('unused:true usd>5');
+
+      expect(result.isSuccess, isTrue);
+      // Jace is fully reserved; Bolt is idle but under $5; Tarmogoyf has
+      // one idle copy and costs $15.
+      expect(result.cards.map((c) => c.name).toList(), ['Tarmogoyf']);
+    });
+
+    test('have:true reflects stacks across the two databases', () async {
+      await seedStack('bolt-1', 4);
+      await seedStack('forest-1', 1);
+
+      final result = await engineWithUser.search('have:true');
+
+      expect(result.cards.map((c) => c.name).toList()..sort(),
+          ['Forest', 'Lightning Bolt']);
+      expect(result.totalCount, 2);
+    });
+
+    test('unassembled decks reserve nothing', () async {
+      await seedStack('goyf-1', 2);
+      await seedDeck('deck-1', {'goyf-1': 2}, isAssembled: false);
+
+      final result = await engineWithUser.search('unused:true');
+
+      expect(result.cards.map((c) => c.name).toList(), ['Tarmogoyf']);
+    });
+
+    test('engine without a user DB matches nothing for have:', () async {
+      await seedStack('bolt-1', 4);
+
+      // `engine` (no userDb) must keep the empty-collection semantics.
+      final result = await engine.search('have:true');
+
+      expect(result.isSuccess, isTrue);
+      expect(result.cards, isEmpty);
     });
   });
 }

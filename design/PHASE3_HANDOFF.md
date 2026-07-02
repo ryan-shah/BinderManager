@@ -1,5 +1,11 @@
 # Phase 3 Handoff
 
+> **STATUS (2026-07-02): Phase 3 is implemented** on
+> `phase-3/import-and-reservation` (user DB, ManaBox import, decklist
+> import, reservation engine, compiler integration — 496 tests). The plan
+> below is kept for reference; remaining work is browser verification and
+> the PR to `main`.
+
 Session handoff document. Written at the end of Phase 2 (2026-07-01) so a fresh
 session can begin Phase 3 immediately after PR #2 merges to `main`.
 

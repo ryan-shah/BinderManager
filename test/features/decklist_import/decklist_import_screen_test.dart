@@ -30,6 +30,9 @@ class FakeDeckImportNotifier extends StateNotifier<DeckImportState>
   var commitCalls = 0;
   var resetCalls = 0;
 
+  @override
+  void Function()? get onCommitted => null;
+
   void emit(DeckImportState next) => state = next;
 
   @override

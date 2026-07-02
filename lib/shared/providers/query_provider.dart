@@ -2,8 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/query/query_engine.dart';
 import 'corpus_provider.dart';
+import 'user_database_provider.dart';
 
-/// Provides a [QueryEngine] instance wired to the corpus database.
+/// Provides a [QueryEngine] wired to the corpus and user databases, so
+/// `have:`/`unused:` filter against real owned/idle quantities.
 ///
 /// Usage:
 /// ```dart
@@ -12,5 +14,6 @@ import 'corpus_provider.dart';
 /// ```
 final queryEngineProvider = Provider<QueryEngine>((ref) {
   final db = ref.watch(corpusDatabaseProvider);
-  return QueryEngine(db);
+  final userDb = ref.watch(userDatabaseProvider);
+  return QueryEngine(db, userDb: userDb);
 });

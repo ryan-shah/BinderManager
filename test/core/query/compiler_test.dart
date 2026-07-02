@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:binder_manager/core/allocation/reservation.dart';
 import 'package:binder_manager/core/database/corpus_database.dart';
 import 'package:binder_manager/core/query/ast.dart';
 import 'package:binder_manager/core/query/compiler.dart';
@@ -574,19 +575,19 @@ void main() {
       expect(names, isNot(contains('Tarmogoyf')));
     });
 
-    test('unused:true matches nothing until the user DB exists', () async {
+    test('unused:true matches nothing without a collection', () async {
       final ast = parseQuery('unused:true').ast!;
       final names = await _queryNames(ast);
       expect(names, isEmpty);
     });
 
-    test('have:true matches nothing until the user DB exists', () async {
+    test('have:true matches nothing without a collection', () async {
       final ast = parseQuery('have:true').ast!;
       final names = await _queryNames(ast);
       expect(names, isEmpty);
     });
 
-    test('c:R unused:true matches nothing (empty collection)', () async {
+    test('c:R unused:true matches nothing without a collection', () async {
       final ast = parseQuery('c:R unused:true').ast!;
       final names = await _queryNames(ast);
       expect(names, isEmpty);
@@ -596,6 +597,94 @@ void main() {
       final ast = parseQuery('-have:true').ast!;
       final names = await _queryNames(ast);
       expect(names.length, 6);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // have:/unused: backed by a collection snapshot
+  // ---------------------------------------------------------------------------
+
+  group('have:/unused: with a collection', () {
+    ReservationSummary summary({
+      Map<String, int> owned = const {},
+      Map<String, int> reserved = const {},
+    }) =>
+        ReservationSummary(
+          ownedByPrinting: owned,
+          reservedByPrinting: reserved,
+        );
+
+    Future<List<String>> queryWith(ReservationSummary s, String query) async {
+      final withCollection = QueryCompiler(db.cards, collection: s);
+      final expr = withCollection.compile(parseQuery(query).ast!);
+      final results = await (db.select(db.cards)..where((_) => expr)).get();
+      return results.map((c) => c.name).toList()..sort();
+    }
+
+    test('have:true matches owned printings', () async {
+      final s = summary(owned: {'bolt-1': 4, 'goyf-1': 1});
+      expect(
+        await queryWith(s, 'have:true'),
+        ['Lightning Bolt', 'Tarmogoyf'],
+      );
+    });
+
+    test('-have:true matches only unowned printings', () async {
+      final s = summary(owned: {'bolt-1': 4, 'goyf-1': 1});
+      final names = await queryWith(s, '-have:true');
+      expect(names, hasLength(4));
+      expect(names, isNot(contains('Lightning Bolt')));
+      expect(names, isNot(contains('Tarmogoyf')));
+    });
+
+    test('unused:true excludes fully reserved printings', () async {
+      final s = summary(
+        owned: {'bolt-1': 4, 'goyf-1': 2},
+        reserved: {'goyf-1': 2},
+      );
+      expect(await queryWith(s, 'unused:true'), ['Lightning Bolt']);
+    });
+
+    test('partial reservation stays idle', () async {
+      final s = summary(
+        owned: {'goyf-1': 3},
+        reserved: {'goyf-1': 2},
+      );
+      expect(await queryWith(s, 'unused:true'), ['Tarmogoyf']);
+    });
+
+    test('c:R unused:true composes with other filters', () async {
+      final s = summary(owned: {'bolt-1': 4, 'helix-1': 2, 'jace-1': 1});
+      expect(
+        await queryWith(s, 'c:R unused:true'),
+        ['Lightning Bolt', 'Lightning Helix'],
+      );
+    });
+
+    test('have>=2 thresholds owned counts', () async {
+      final s = summary(owned: {'bolt-1': 4, 'goyf-1': 1});
+      expect(await queryWith(s, 'have>=2'), ['Lightning Bolt']);
+    });
+
+    test('have<2 includes cards not in the collection at all', () async {
+      final s = summary(owned: {'bolt-1': 4, 'goyf-1': 1});
+      final names = await queryWith(s, 'have<2');
+      expect(names, hasLength(5));
+      expect(names, isNot(contains('Lightning Bolt')));
+      expect(names, contains('Tarmogoyf'));
+    });
+
+    test('empty collection matches nothing', () async {
+      expect(await queryWith(summary(), 'have:true'), isEmpty);
+      expect(await queryWith(summary(), 'unused:true'), isEmpty);
+    });
+
+    test('id sets past the bind limit use the literal IN path', () async {
+      final s = summary(owned: {
+        for (var i = 0; i < 2000; i++) 'phantom-$i': 1,
+        'bolt-1': 4,
+      });
+      expect(await queryWith(s, 'have:true'), ['Lightning Bolt']);
     });
   });
 }
