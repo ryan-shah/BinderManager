@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
@@ -8,7 +7,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:binder_manager/core/database/corpus_database.dart';
 import 'package:binder_manager/core/database/user_database.dart';
 import 'package:binder_manager/core/import/collection_importer.dart';
-import 'package:binder_manager/core/import/manabox_parser.dart';
 import 'package:binder_manager/core/models/card_identity.dart';
 import 'package:binder_manager/shared/providers/collection_import_provider.dart';
 
