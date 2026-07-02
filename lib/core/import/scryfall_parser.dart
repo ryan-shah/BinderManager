@@ -36,11 +36,16 @@ class ScryfallParser {
   ///
   /// [onProgress] fires after each batch with total cards processed.
   ///
+  /// [cardLimit] stops parsing after that many cards. Returning early
+  /// cancels the underlying stream subscription, which aborts the HTTP
+  /// download — used for the debug quick-import mode.
+  ///
   /// Returns the total number of cards inserted.
   Future<int> parseFromStream(
     Stream<List<int>> byteStream, {
     void Function(int bytesReceived)? onBytesReceived,
     void Function(int cardsProcessed)? onProgress,
+    int? cardLimit,
   }) async {
     final buffer = StringBuffer();
     var braceDepth = 0;
@@ -92,6 +97,16 @@ class ScryfallParser {
                   jsonDecode(buffer.toString()) as Map<String, dynamic>;
               pendingBatch.add(card);
               buffer.clear();
+
+              // Card limit reached — flush and stop. Returning from inside
+              // the await-for cancels the stream, aborting the download.
+              if (cardLimit != null &&
+                  totalProcessed + pendingBatch.length >= cardLimit) {
+                await _insertBatch(pendingBatch);
+                totalProcessed += pendingBatch.length;
+                onProgress?.call(totalProcessed);
+                return totalProcessed;
+              }
 
               if (pendingBatch.length >= batchSize) {
                 await _insertBatch(pendingBatch);
@@ -198,6 +213,7 @@ class ScryfallParser {
       isPromo: Value(card['promo'] as bool? ?? false),
       frameEffects: Value(_joinList(card['frame_effects'])),
       securityStamp: Value(card['security_stamp'] as String?),
+      borderColor: Value(card['border_color'] as String?),
       layout: Value(card['layout'] as String? ?? ''),
       releasedAt: Value(card['released_at'] as String? ?? ''),
     );

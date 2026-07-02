@@ -14,7 +14,18 @@ class CorpusDatabase extends _$CorpusDatabase {
   CorpusDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            // v2: border_color column for is:borderless queries. Existing
+            // rows get null — a corpus re-download populates them.
+            await m.addColumn(cards, cards.borderColor);
+          }
+        },
+      );
 
   // ---------------------------------------------------------------------------
   // Corpus management

@@ -52,6 +52,7 @@ class Cards extends Table {
   // --- Metadata ---
   TextColumn get frameEffects => text().nullable()();
   TextColumn get securityStamp => text().nullable()();
+  TextColumn get borderColor => text().nullable()();
   TextColumn get layout => text()();
   TextColumn get releasedAt => text()();
 
