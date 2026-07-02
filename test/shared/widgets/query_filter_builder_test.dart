@@ -71,6 +71,92 @@ void main() {
     });
   });
 
+  group('QueryFilterBuilder - rarity chips', () {
+    testWidgets('single rarity emits a bare r: token', (tester) async {
+      String? lastQuery;
+      await tester.pumpWidget(buildBuilder(
+        onQueryChanged: (q) => lastQuery = q,
+      ));
+
+      await tester.scrollUntilVisible(
+        find.text('Rare'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Rare'));
+      await tester.pumpAndSettle();
+
+      expect(lastQuery, contains('r:rare'));
+      expect(lastQuery, isNot(contains('(')));
+    });
+
+    testWidgets('multiple rarities are OR-grouped', (tester) async {
+      String? lastQuery;
+      await tester.pumpWidget(buildBuilder(
+        onQueryChanged: (q) => lastQuery = q,
+      ));
+
+      await tester.scrollUntilVisible(
+        find.text('Rare'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Rare'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Mythic'));
+      await tester.pumpAndSettle();
+
+      expect(lastQuery, contains('(r:rare OR r:mythic)'));
+    });
+
+    testWidgets('grouped rarities in initial query round-trip',
+        (tester) async {
+      String? lastQuery;
+      await tester.pumpWidget(buildBuilder(
+        initialQuery: '(r:rare OR r:mythic)',
+        onQueryChanged: (q) => lastQuery = q,
+      ));
+
+      // Trigger recompile via a pip tap; both rarities should persist.
+      await tester.tap(find.text('G'));
+      await tester.pumpAndSettle();
+
+      expect(lastQuery, contains('(r:rare OR r:mythic)'));
+    });
+  });
+
+  group('QueryFilterBuilder - set field', () {
+    testWidgets('multiple set codes normalize to one comma list',
+        (tester) async {
+      String? lastQuery;
+      await tester.pumpWidget(buildBuilder(
+        onQueryChanged: (q) => lastQuery = q,
+      ));
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'e.g. mh2, neo'),
+        'khm, neo mh2',
+      );
+      await tester.pumpAndSettle();
+
+      expect(lastQuery, contains('s:khm,neo,mh2'));
+    });
+
+    testWidgets('comma set list in initial query round-trips',
+        (tester) async {
+      String? lastQuery;
+      await tester.pumpWidget(buildBuilder(
+        initialQuery: 's:khm,neo',
+        onQueryChanged: (q) => lastQuery = q,
+      ));
+
+      await tester.tap(find.text('G'));
+      await tester.pumpAndSettle();
+
+      expect(lastQuery, contains('s:khm,neo'));
+    });
+  });
+
   group('QueryFilterBuilder - price slider', () {
     testWidgets('price slider updates query with usd range', (tester) async {
       String? lastQuery;

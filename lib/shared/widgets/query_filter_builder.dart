@@ -130,6 +130,17 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
       if (match.isNotEmpty) _selectedTypes.add(match.first);
     }
 
+    // Extract rarity patterns (including parenthesized groups). Anchored to
+    // a token boundary or open paren so `r:` can't match mid-word.
+    final rarityMatches = RegExp(r'(^|[\s(])r:(\w+)').allMatches(q);
+    for (final m in rarityMatches) {
+      final val = m.group(2)!;
+      final match = _rarities.where(
+        (rr) => rr.toLowerCase() == val.toLowerCase(),
+      );
+      if (match.isNotEmpty) _selectedRarities.add(match.first);
+    }
+
     // Strip recognized structured tokens to find bare text. Prefixes are
     // anchored to a token boundary so e.g. `s:` cannot match inside
     // `is:borderless` and leave a stray "i" behind.
@@ -170,13 +181,7 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
         final idx = ManaPips.labels.indexOf(l);
         if (idx >= 0) _colorStates[idx] = 2;
       } else if (token.startsWith('s:')) {
-        _setController.text = token.substring(2);
-      } else if (token.startsWith('r:')) {
-        final r = token.substring(2);
-        final match = _rarities.where(
-          (rr) => rr.toLowerCase() == r.toLowerCase(),
-        );
-        if (match.isNotEmpty) _selectedRarities.add(match.first);
+        _setController.text = token.substring(2).split(',').join(', ');
       } else if (token.startsWith('is:')) {
         final flag = token.substring(3).toLowerCase();
         final match = _treatments.where(
@@ -237,13 +242,23 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
       parts.add('usd<=${_priceMax.toStringAsFixed(0)}');
     }
 
-    // Set
-    final setCode = _setController.text.trim();
-    if (setCode.isNotEmpty) parts.add('s:$setCode');
+    // Set: accept comma- and/or space-separated codes, emit as one
+    // comma list (`s:khm,neo`) which the grammar treats as an OR.
+    final setCodes = _setController.text
+        .split(RegExp(r'[,\s]+'))
+        .where((s) => s.isNotEmpty)
+        .toList();
+    if (setCodes.isNotEmpty) parts.add('s:${setCodes.join(',')}');
 
-    // Rarity
-    for (final r in _selectedRarities) {
-      parts.add('r:${r.toLowerCase()}');
+    // Rarity: multiple selections are alternatives, so OR-group them
+    // like types (`r:x r:y` would AND and always match nothing).
+    if (_selectedRarities.length == 1) {
+      parts.add('r:${_selectedRarities.first.toLowerCase()}');
+    } else if (_selectedRarities.length > 1) {
+      final inner = _selectedRarities
+          .map((r) => 'r:${r.toLowerCase()}')
+          .join(' OR ');
+      parts.add('($inner)');
     }
 
     // Treatments
@@ -472,7 +487,7 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
           TextField(
             controller: _setController,
             decoration: InputDecoration(
-              hintText: 'e.g. mh2',
+              hintText: 'e.g. mh2, neo',
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.md,

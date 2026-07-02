@@ -83,14 +83,18 @@ class AppliedFilterChips extends StatelessWidget {
       return 'Exclude identity: ${token.substring(4)}';
     }
     if (token.startsWith('(') && token.endsWith(')')) {
-      // Grouped types: (t:creature OR t:instant)
+      // Grouped alternatives: (t:creature OR t:instant), (r:rare OR r:mythic)
       final inner = token.substring(1, token.length - 1);
-      final types = RegExp(r't:(\w+)')
+      String joined(String prefix) => RegExp('(^|\\s)$prefix:(\\w+)')
           .allMatches(inner)
-          .map((m) => m.group(1)!)
-          .map((t) => t[0].toUpperCase() + t.substring(1))
+          .map((m) => m.group(2)!)
+          .map((v) => v[0].toUpperCase() + v.substring(1))
           .join(', ');
-      return 'Type: $types';
+      final types = joined('t');
+      if (types.isNotEmpty) return 'Type: $types';
+      final rarities = joined('r');
+      if (rarities.isNotEmpty) return 'Rarity: $rarities';
+      return token;
     }
     if (token.startsWith('t:')) {
       final t = token.substring(2);
@@ -103,7 +107,8 @@ class AppliedFilterChips extends StatelessWidget {
       return 'Max: \$${token.substring(5)}';
     }
     if (token.startsWith('s:')) {
-      return 'Set: ${token.substring(2).toUpperCase()}';
+      final codes = token.substring(2).toUpperCase().split(',').join(', ');
+      return 'Set: $codes';
     }
     if (token.startsWith('r:')) {
       final r = token.substring(2);
