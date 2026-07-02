@@ -68,6 +68,10 @@ class AppliedFilterChips extends StatelessWidget {
     return tokens;
   }
 
+  /// Capitalize the first letter; safe on empty strings.
+  static String _capitalize(String s) =>
+      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
   /// Human-readable label for a filter token.
   static String _chipLabel(String token) {
     if (token.startsWith('c:')) {
@@ -87,8 +91,7 @@ class AppliedFilterChips extends StatelessWidget {
       final inner = token.substring(1, token.length - 1);
       String joined(String prefix) => RegExp('(^|\\s)$prefix:(\\w+)')
           .allMatches(inner)
-          .map((m) => m.group(2)!)
-          .map((v) => v[0].toUpperCase() + v.substring(1))
+          .map((m) => _capitalize(m.group(2)!))
           .join(', ');
       final types = joined('t');
       if (types.isNotEmpty) return 'Type: $types';
@@ -97,8 +100,7 @@ class AppliedFilterChips extends StatelessWidget {
       return token;
     }
     if (token.startsWith('t:')) {
-      final t = token.substring(2);
-      return 'Type: ${t[0].toUpperCase()}${t.substring(1)}';
+      return 'Type: ${_capitalize(token.substring(2))}';
     }
     if (token.startsWith('usd>=')) {
       return 'Min: \$${token.substring(5)}';
@@ -111,12 +113,12 @@ class AppliedFilterChips extends StatelessWidget {
       return 'Set: $codes';
     }
     if (token.startsWith('r:')) {
-      final r = token.substring(2);
-      return 'Rarity: ${r[0].toUpperCase()}${r.substring(1)}';
+      return 'Rarity: ${_capitalize(token.substring(2))}';
     }
     if (token.startsWith('is:')) {
       final flag = token.substring(3);
-      return flag[0].toUpperCase() + flag.substring(1);
+      // A bare `is:` has no flag to label — show the raw token.
+      return flag.isEmpty ? token : _capitalize(flag);
     }
     if (token.startsWith('o:"') && token.endsWith('"')) {
       return 'Text: ${token.substring(3, token.length - 1)}';

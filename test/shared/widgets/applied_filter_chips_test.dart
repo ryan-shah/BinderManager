@@ -46,6 +46,20 @@ void main() {
       expect(find.text('Rarity: Rare, Mythic'), findsOneWidget);
     });
 
+    testWidgets('empty-value tokens render without crashing', (tester) async {
+      // Chips render the raw query before parse validation, so a submitted
+      // bare prefix must not throw (was a RangeError on value[0]).
+      await tester.pumpWidget(buildChips(
+        query: 't: r: is:',
+        onChipRemoved: (_) {},
+      ));
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Type: '), findsOneWidget);
+      expect(find.text('Rarity: '), findsOneWidget);
+      expect(find.text('is:'), findsOneWidget);
+    });
+
     testWidgets('comma set list labels with spaced codes', (tester) async {
       await tester.pumpWidget(buildChips(
         query: 's:khm,neo',
