@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:binder_manager/core/database/corpus_database.dart';
 import 'package:binder_manager/features/binders_list/binders_list_screen.dart';
 import 'package:binder_manager/features/collection_search/collection_search_screen.dart';
-import 'package:binder_manager/features/decks/decks_list_screen.dart';
 import 'package:binder_manager/features/settings/settings_screen.dart';
 import 'package:binder_manager/shared/providers/corpus_provider.dart';
 
@@ -39,12 +38,8 @@ void main() {
       expect(find.text('Search your collection'), findsOneWidget);
     });
 
-    testWidgets('DecksListScreen shows "Decks"', (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(home: DecksListScreen()),
-      );
-      expect(find.text('Decks'), findsOneWidget);
-    });
+    // DecksListScreen is a real screen now — covered by
+    // test/features/decks/decks_list_screen_test.dart.
 
     testWidgets('SettingsScreen shows "Settings"', (tester) async {
       await tester.pumpWidget(

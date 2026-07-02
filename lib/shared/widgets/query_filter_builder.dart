@@ -45,6 +45,10 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
   ];
   late final Set<String> _selectedTypes;
 
+  // -- Type match mode: false = any (OR-group), true = all (AND) --
+  // "All" finds cards carrying every selected type (e.g. artifact creature).
+  late bool _typeMatchAll;
+
   // -- Price range --
   late double _priceMin;
   late double _priceMax;
@@ -86,6 +90,7 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
     _colorStates = List.filled(ManaPips.labels.length, 0);
     _useIdentity = false;
     _selectedTypes = {};
+    _typeMatchAll = false;
     _priceMin = 0;
     _priceMax = _priceAbsMax;
     _nameController = TextEditingController();
@@ -128,6 +133,11 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
         (t) => t.toLowerCase() == val.toLowerCase(),
       );
       if (match.isNotEmpty) _selectedTypes.add(match.first);
+    }
+    // Multiple bare (ungrouped) t: tokens AND together — that's "all" mode.
+    // A parenthesized group means OR ("any"), the default.
+    if (_selectedTypes.length > 1 && !q.contains(RegExp(r'\(\s*t:'))) {
+      _typeMatchAll = true;
     }
 
     // Extract rarity patterns (including parenthesized groups). Anchored to
@@ -224,14 +234,19 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
       parts.add('-$colorField:$d');
     }
 
-    // Types
+    // Types: "any" OR-groups the selection; "all" ANDs it as bare tokens
+    // (matches e.g. artifact creatures via t:artifact t:creature).
     if (_selectedTypes.length == 1) {
       parts.add('t:${_selectedTypes.first.toLowerCase()}');
     } else if (_selectedTypes.length > 1) {
-      final inner = _selectedTypes
-          .map((t) => 't:${t.toLowerCase()}')
-          .join(' OR ');
-      parts.add('($inner)');
+      if (_typeMatchAll) {
+        parts.addAll(_selectedTypes.map((t) => 't:${t.toLowerCase()}'));
+      } else {
+        final inner = _selectedTypes
+            .map((t) => 't:${t.toLowerCase()}')
+            .join(' OR ');
+        parts.add('($inner)');
+      }
     }
 
     // Price range
@@ -319,7 +334,34 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
   }
 
   Widget _colorModeChip(String label, {required bool useIdentity}) {
-    final isSelected = _useIdentity == useIdentity;
+    return _modeChip(
+      label,
+      isSelected: _useIdentity == useIdentity,
+      onTap: () {
+        if (_useIdentity == useIdentity) return;
+        setState(() => _useIdentity = useIdentity);
+        _emitQuery();
+      },
+    );
+  }
+
+  Widget _typeModeChip(String label, {required bool matchAll}) {
+    return _modeChip(
+      label,
+      isSelected: _typeMatchAll == matchAll,
+      onTap: () {
+        if (_typeMatchAll == matchAll) return;
+        setState(() => _typeMatchAll = matchAll);
+        _emitQuery();
+      },
+    );
+  }
+
+  Widget _modeChip(
+    String label, {
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
     return ChoiceChip(
       label: Text(label, style: AppTypography.bodySm.copyWith(
         color: isSelected ? AppColors.neutral0 : AppColors.neutral700,
@@ -334,11 +376,7 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
         borderRadius: BorderRadius.circular(AppRadii.md),
       ),
       showCheckmark: false,
-      onSelected: (_) {
-        if (_useIdentity == useIdentity) return;
-        setState(() => _useIdentity = useIdentity);
-        _emitQuery();
-      },
+      onSelected: (_) => onTap(),
     );
   }
 
@@ -439,6 +477,16 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
                 },
               );
             }).toList(),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // Any = card has at least one selected type (OR); All = card
+          // carries every selected type (AND, e.g. artifact creatures).
+          Row(
+            children: [
+              _typeModeChip('Any', matchAll: false),
+              const SizedBox(width: AppSpacing.sm),
+              _typeModeChip('All', matchAll: true),
+            ],
           ),
 
           // -- Price Range --

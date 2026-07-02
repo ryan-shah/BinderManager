@@ -71,6 +71,90 @@ void main() {
     });
   });
 
+  group('QueryFilterBuilder - type match mode', () {
+    testWidgets('two types default to an OR group (Any)', (tester) async {
+      String? lastQuery;
+      await tester.pumpWidget(buildBuilder(
+        onQueryChanged: (q) => lastQuery = q,
+      ));
+
+      await tester.scrollUntilVisible(
+        find.text('Creature'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Creature'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Artifact'));
+      await tester.pumpAndSettle();
+
+      expect(lastQuery, contains('(t:creature OR t:artifact)'));
+    });
+
+    testWidgets('All mode emits bare AND tokens', (tester) async {
+      String? lastQuery;
+      await tester.pumpWidget(buildBuilder(
+        onQueryChanged: (q) => lastQuery = q,
+      ));
+
+      await tester.scrollUntilVisible(
+        find.text('Creature'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Creature'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Artifact'));
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('All'),
+        100,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('All'));
+      await tester.pumpAndSettle();
+
+      expect(lastQuery, contains('t:creature t:artifact'));
+      expect(lastQuery, isNot(contains('OR')));
+
+      // Switching back to Any restores the OR group.
+      await tester.tap(find.text('Any'));
+      await tester.pumpAndSettle();
+      expect(lastQuery, contains('(t:creature OR t:artifact)'));
+    });
+
+    testWidgets('bare AND tokens in initial query activate All mode',
+        (tester) async {
+      String? lastQuery;
+      await tester.pumpWidget(buildBuilder(
+        initialQuery: 't:artifact t:creature',
+        onQueryChanged: (q) => lastQuery = q,
+      ));
+
+      // Recompile via a pip tap; the AND shape must survive.
+      await tester.tap(find.text('G'));
+      await tester.pumpAndSettle();
+
+      expect(lastQuery, contains('t:artifact t:creature'));
+      expect(lastQuery, isNot(contains('OR')));
+    });
+
+    testWidgets('grouped types in initial query stay in Any mode',
+        (tester) async {
+      String? lastQuery;
+      await tester.pumpWidget(buildBuilder(
+        initialQuery: '(t:artifact OR t:creature)',
+        onQueryChanged: (q) => lastQuery = q,
+      ));
+
+      await tester.tap(find.text('G'));
+      await tester.pumpAndSettle();
+
+      expect(lastQuery, contains('(t:artifact OR t:creature)'));
+    });
+  });
+
   group('QueryFilterBuilder - rarity chips', () {
     testWidgets('single rarity emits a bare r: token', (tester) async {
       String? lastQuery;

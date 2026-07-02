@@ -147,6 +147,121 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
+  // Multi-face cards (transform / MDFC)
+  // ---------------------------------------------------------------------------
+
+  group('multi-face cards', () {
+    /// A transform-layout card: colors, image_uris, mana_cost, and
+    /// oracle_text live on the faces, not the top-level card.
+    Map<String, dynamic> makeDfc({
+      String id = 'dfc-1',
+      List<String> frontColors = const ['U'],
+      List<String> backColors = const ['U'],
+    }) {
+      final card = makeScryfallCard(
+        id: id,
+        name: 'Delver of Secrets // Insectile Aberration',
+        manaCost: null,
+        oracleText: null,
+        colors: null,
+        colorIdentity: const ['U'],
+        typeLine: 'Creature — Human Wizard // Creature — Human Insect',
+        layout: 'transform',
+      );
+      card['card_faces'] = [
+        {
+          'name': 'Delver of Secrets',
+          'mana_cost': '{U}',
+          'oracle_text': 'At the beginning of your upkeep, look at the '
+              'top card of your library.',
+          'colors': frontColors,
+          'image_uris': {
+            'small': 'https://img.test/front-small.jpg',
+            'normal': 'https://img.test/front-normal.jpg',
+          },
+        },
+        {
+          'name': 'Insectile Aberration',
+          'mana_cost': '',
+          'oracle_text': 'Flying',
+          'colors': backColors,
+          'image_uris': {
+            'small': 'https://img.test/back-small.jpg',
+            'normal': 'https://img.test/back-normal.jpg',
+          },
+        },
+      ];
+      return card;
+    }
+
+    test('unions colors across faces', () async {
+      await parser.parseAndInsert(toJsonBytes([
+        makeDfc(frontColors: ['U'], backColors: ['R']),
+      ]));
+
+      final stored = await db.getCard('dfc-1');
+      expect(stored!.colors, 'U,R');
+    });
+
+    test('same color on both faces is not duplicated', () async {
+      await parser.parseAndInsert(toJsonBytes([makeDfc()]));
+
+      final stored = await db.getCard('dfc-1');
+      expect(stored!.colors, 'U');
+    });
+
+    test('colorless faces yield empty colors, not null', () async {
+      await parser.parseAndInsert(toJsonBytes([
+        makeDfc(frontColors: [], backColors: []),
+      ]));
+
+      final stored = await db.getCard('dfc-1');
+      expect(stored!.colors, '');
+    });
+
+    test('takes image_uris from the front face', () async {
+      await parser.parseAndInsert(toJsonBytes([makeDfc()]));
+
+      final stored = await db.getCard('dfc-1');
+      expect(stored!.imageUriSmall, 'https://img.test/front-small.jpg');
+      expect(stored.imageUriNormal, 'https://img.test/front-normal.jpg');
+    });
+
+    test('joins oracle text and mana cost across faces', () async {
+      await parser.parseAndInsert(toJsonBytes([makeDfc()]));
+
+      final stored = await db.getCard('dfc-1');
+      expect(stored!.oracleText, contains('top card of your library'));
+      expect(stored.oracleText, contains('Flying'));
+      expect(stored.manaCost, '{U}');
+    });
+
+    test('top-level fields win over faces when present', () async {
+      // Adventure/split-style cards have card_faces but keep top-level
+      // colors and image_uris — those must not be overridden.
+      final card = makeScryfallCard(
+        id: 'adventure-1',
+        name: 'Bonecrusher Giant // Stomp',
+        colors: ['R'],
+        imageUris: {'small': 'https://img.test/top-small.jpg'},
+        layout: 'adventure',
+      );
+      card['card_faces'] = [
+        {
+          'name': 'Bonecrusher Giant',
+          'colors': ['G'],
+          'image_uris': {'small': 'https://img.test/face-small.jpg'},
+        },
+      ];
+      await parser.parseAndInsert(toJsonBytes([card]));
+
+      final stored = await db.getCard('adventure-1');
+      expect(stored!.colors, 'R');
+      expect(stored.imageUriSmall, 'https://img.test/top-small.jpg');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Optional / missing fields
   // ---------------------------------------------------------------------------
 

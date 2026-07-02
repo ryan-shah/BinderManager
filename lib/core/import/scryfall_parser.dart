@@ -183,19 +183,60 @@ class ScryfallParser {
   }
 
   /// Maps a single Scryfall card JSON object to a [CardsCompanion].
+  ///
+  /// Multi-face layouts (transform, modal_dfc, …) keep `colors`,
+  /// `image_uris`, `mana_cost`, and `oracle_text` on the `card_faces`
+  /// objects rather than the card itself — merge from faces when the
+  /// top-level field is absent so DFCs aren't colorless and image-less.
   CardsCompanion _mapToCompanion(Map<String, dynamic> card) {
     final prices = card['prices'] as Map<String, dynamic>? ?? {};
-    final imageUris = card['image_uris'] as Map<String, dynamic>? ?? {};
+    final faces =
+        (card['card_faces'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+
+    var imageUris = card['image_uris'] as Map<String, dynamic>? ?? {};
+    if (imageUris.isEmpty && faces.isNotEmpty) {
+      imageUris = faces.first['image_uris'] as Map<String, dynamic>? ?? {};
+    }
+
+    var colors = _joinList(card['colors']);
+    if (colors == null && faces.isNotEmpty) {
+      final union = <String>{};
+      var anyFaceHasColors = false;
+      for (final face in faces) {
+        final faceColors = face['colors'];
+        if (faceColors is List) {
+          anyFaceHasColors = true;
+          union.addAll(faceColors.cast<String>());
+        }
+      }
+      if (anyFaceHasColors) colors = union.join(',');
+    }
+
+    var manaCost = card['mana_cost'] as String?;
+    if ((manaCost == null || manaCost.isEmpty) && faces.isNotEmpty) {
+      final parts = faces
+          .map((f) => f['mana_cost'] as String? ?? '')
+          .where((c) => c.isNotEmpty);
+      if (parts.isNotEmpty) manaCost = parts.join(' // ');
+    }
+
+    var oracleText = card['oracle_text'] as String?;
+    if (oracleText == null && faces.isNotEmpty) {
+      final parts = faces
+          .map((f) => f['oracle_text'] as String? ?? '')
+          .where((t) => t.isNotEmpty);
+      if (parts.isNotEmpty) oracleText = parts.join('\n//\n');
+    }
 
     return CardsCompanion(
       scryfallId: Value(card['id'] as String),
       oracleId: Value(card['oracle_id'] as String? ?? ''),
       name: Value(card['name'] as String),
-      manaCost: Value(card['mana_cost'] as String?),
+      manaCost: Value(manaCost),
       cmc: Value((card['cmc'] as num?)?.toDouble() ?? 0.0),
       typeLine: Value(card['type_line'] as String? ?? ''),
-      oracleText: Value(card['oracle_text'] as String?),
-      colors: Value(_joinList(card['colors'])),
+      oracleText: Value(oracleText),
+      colors: Value(colors),
       colorIdentity: Value(_joinList(card['color_identity']) ?? ''),
       setCode: Value(card['set'] as String? ?? ''),
       setName: Value(card['set_name'] as String? ?? ''),

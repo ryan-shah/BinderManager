@@ -67,7 +67,19 @@ class SearchNotifier extends StateNotifier<SearchState> {
   /// Update the search query and execute the search.
   Future<void> search(String query) async {
     if (query == state.query && !state.isLoading) return;
+    await _run(query);
+  }
 
+  /// Re-run the current query, bypassing the same-query guard.
+  ///
+  /// Call after anything that changes what `have:`/`unused:` match —
+  /// collection imports, deck commits — or results go stale.
+  Future<void> refresh() async {
+    if (state.query.isEmpty) return;
+    await _run(state.query);
+  }
+
+  Future<void> _run(String query) async {
     state = state.copyWith(
       query: query,
       isLoading: true,
