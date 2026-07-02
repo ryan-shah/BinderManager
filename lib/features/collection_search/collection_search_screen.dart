@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/responsive.dart';
 import '../../app/theme.dart';
@@ -73,6 +74,18 @@ class _CollectionSearchScreenState
   // ---------------------------------------------------------------------------
   // Query bar
   // ---------------------------------------------------------------------------
+
+  /// Entry point to the ManaBox CSV import flow (UI_COMPONENTS §3).
+  Widget _buildImportButton() {
+    return Padding(
+      padding: const EdgeInsets.only(right: AppSpacing.lg),
+      child: OutlinedButton.icon(
+        onPressed: () => context.go('/collection/import'),
+        icon: const Icon(Icons.upload_file, size: 16),
+        label: const Text('Import CSV'),
+      ),
+    );
+  }
 
   Widget _buildQueryBar() {
     return Container(
@@ -329,6 +342,7 @@ class _CollectionSearchScreenState
                       ),
                     ),
                   Expanded(child: _buildQueryBar()),
+                  _buildImportButton(),
                 ],
               ),
 
@@ -367,8 +381,13 @@ class _CollectionSearchScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Query bar
-        _buildQueryBar(),
+        // Query bar + import entry point
+        Row(
+          children: [
+            Expanded(child: _buildQueryBar()),
+            _buildImportButton(),
+          ],
+        ),
 
         // Applied filter chips
         if (state.query.isNotEmpty)
