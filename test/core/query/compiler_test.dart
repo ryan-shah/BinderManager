@@ -574,17 +574,28 @@ void main() {
       expect(names, isNot(contains('Tarmogoyf')));
     });
 
-    test('unused:true is a pass-through (matches all)', () async {
+    test('unused:true matches nothing until the user DB exists', () async {
       final ast = parseQuery('unused:true').ast!;
       final names = await _queryNames(ast);
-      expect(names.length, 6);
+      expect(names, isEmpty);
     });
 
-    test('c:R unused:true applies only the color filter', () async {
+    test('have:true matches nothing until the user DB exists', () async {
+      final ast = parseQuery('have:true').ast!;
+      final names = await _queryNames(ast);
+      expect(names, isEmpty);
+    });
+
+    test('c:R unused:true matches nothing (empty collection)', () async {
       final ast = parseQuery('c:R unused:true').ast!;
       final names = await _queryNames(ast);
-      expect(names, containsAll(['Lightning Bolt', 'Lightning Helix']));
-      expect(names, hasLength(2));
+      expect(names, isEmpty);
+    });
+
+    test('-have:true matches everything (nothing is owned)', () async {
+      final ast = parseQuery('-have:true').ast!;
+      final names = await _queryNames(ast);
+      expect(names.length, 6);
     });
   });
 }

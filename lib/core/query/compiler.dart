@@ -56,9 +56,11 @@ class QueryCompiler {
       'frame' => _compileFrame(node),
       'stamp' => _compileStamp(node),
       'finish' => _compileFinish(node),
-      // Phase 3 placeholders — pass through until user DB exists.
-      'unused' => const Constant(true),
-      'have' => const Constant(true),
+      // Phase 3 placeholders — until the user DB exists the collection is
+      // empty, so nothing is owned (have:) and nothing is idle (unused:),
+      // whatever the value. Replace with user-DB subqueries in Phase 3.
+      'unused' => const Constant(false),
+      'have' => const Constant(false),
       _ => throw UnsupportedError('Unknown filter field: ${node.field}'),
     };
   }

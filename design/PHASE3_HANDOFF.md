@@ -99,9 +99,10 @@ branch, PR to `main` with build gate (analyze clean + tests pass +
 Wire real predicates into the compiler. The hooks are already in place:
 
 - `lib/core/query/compiler.dart` `_compileFilter` currently has
-  `'unused' => const Constant(true)` and `'have' => const Constant(true)`
-  (marked "Phase 3 placeholders"). Replace with subqueries/joins against the
-  user DB (stacks ± reservations). The corpus and user DBs are separate
+  `'unused' => const Constant(false)` and `'have' => const Constant(false)`
+  (marked "Phase 3 placeholders" — empty-collection semantics: nothing is
+  owned or idle until the user DB exists). Replace with subqueries/joins
+  against the user DB (stacks ± reservations). The corpus and user DBs are separate
   files — cross-DB SQL needs either ATTACH or an in-Dart id-set filter
   (`scryfallId IN (...)`); decide during implementation and note the choice.
 - UI already emits `have:true` ("In collection") and `unused:true`
