@@ -1,6 +1,6 @@
 # BinderManager — Design Document
 
-**Status:** v1 design locked · **Last updated:** 2026-06-20 · **Stage:** Greenfield (no application code yet)
+**Status:** v1 design locked, amended post-Phase 3 (see D13 + amendment notes) · **Last updated:** 2026-07-03 · **Stage:** Phases 1–3 built (corpus, query engine, import + reservation on `main`)
 
 A Magic: The Gathering collection tool focused on **binder management**. Given an imported
 collection and decklists, the user defines binders by rules (type + contents), and the app
@@ -99,6 +99,10 @@ raw search bar.
   engine *must* run locally over bulk data joined to inventory. Unifying means every search
   improvement improves binder-building and vice versa. `have:`/`unused:` are what Scryfall
   fundamentally cannot do — the product's differentiator.
+- **Amendment (2026-07-03, post-Phase 3):** `unused:`/`idle:` means **deck-idle** ("not reserved by
+  a deck") and keeps that meaning after D6 allocation — cards placed in binders still match, since
+  the allocator consumes from this same pool. A placement-status filter (e.g. `in:binder`) is a
+  Phase 5+ extension.
 
 ### D6 — Multi-binder allocation: consuming, priority-ordered
 When multiple binders' queries match the same physical card:
@@ -140,6 +144,11 @@ retained history is capped/pruned).
   usable.
 - **Tension:** append-without-reflow lets binders drift out of perfect sort order over time; the
   Reflow nudge ("X% out of order") is the pressure valve.
+- **Amendment (2026-07-03, post-Phase 3):** the snapshot/commit machinery covers **binder state
+  only** (binder definitions, priority order, committed placements). Collection and deck imports
+  keep their own purpose-built review gates (diff preview → Commit/Cancel, shipped in Phase 3) and
+  enter D7 as **triggering events** that stage binder diffs — no double-commit UX, and snapshots
+  stay small per D12.
 
 ### D8 — Import: canonical mapping, Replace-or-Append, review queue
 - **Canonical key:** Scryfall ID + finish. ManaBox CSV maps via its Scryfall ID column + foil flag.
@@ -152,6 +161,8 @@ retained history is capped/pruned).
 - **Unmatched rows** (typos, tokens, proxies) → **review queue** with manual map / ignore; never
   silently dropped.
 - **No free-form in-app collection editing in v1** (push editing back to the source app).
+- *Note (2026-07-03): "flows through the D7 commit gate" is satisfied by the import-specific review
+  gates built in Phase 3 — see the D7 amendment; D7 snapshots themselves are binder-scoped.*
 
 ### D9 — Physical model & UI: skeuomorphic flip-through binder
 - A binder is an ordered sequence of pockets derived from **{layout rows×cols, user-set page count,
@@ -207,6 +218,21 @@ retained history is capped/pruned).
   returns bytes, not paths, on web). If fiddly, CSV/ManaBox import ships first; DelverLens gated to
   native initially.
 
+### D13 — Reservation finish granularity: cheapest finish consumed first (added 2026-07-03)
+Deck reservations are computed per **printing** with finishes pooled (v1 decklists cannot express
+finish — shipped this way in Phase 3). D6 allocation needs idle quantities per atomic
+(printing+finish) **stack**, so reservations are distributed to a printing's stacks **cheapest
+finish first** (finish-specific D4 price) — the most valuable finishes stay idle for binders.
+
+- At decklist import, the D3 printing-fidelity prompt (cheapest-first vs pick manually) already lets
+  the user choose printings. A deck's resolved printings must also be **editable after import**
+  (deck detail screen) — many decks run nicer versions for theme or showoff, and that edit is the
+  correction path when the cheapest-first assumption is wrong.
+- **Rationale:** consistent with D1 (value-first trade binders) and D3's cheapest-first default;
+  deterministic without a per-allocation prompt.
+- **Tension:** a player who actually sleeved the foil in their deck sees the foil reported idle
+  until they correct the deck's printing — accepted; the post-import editor is the pressure valve.
+
 ---
 
 ## 3. v1 scope
@@ -228,14 +254,25 @@ in-app collection editing.
 ## 4. Build order (hardest-first, to de-risk early)
 
 1. **Corpus pipeline + drift-on-web (OPFS).** Prove the 150 MB download/parse/query path in a
-   browser tab *first* — the biggest unknown; everything sits on it.
-2. **Query engine.** AST → SQL hybrid over corpus + a hand-seeded inventory.
-3. **ManaBox import + deck reservation.** Produce a real eligible/idle pool.
-4. **Allocation + planned/committed + commit/rollback.** The logical core.
-5. **Skeuomorphic binder UI + positions + export.** The payoff surface (least *risky*, so it's last).
+   browser tab *first* — the biggest unknown; everything sits on it. — **done (Phase 1)**
+2. **Query engine.** AST → SQL hybrid over corpus + a hand-seeded inventory. — **done (Phase 2,
+   PR #2)**
+3. **ManaBox import + deck reservation.** Produce a real eligible/idle pool. — **done (Phase 3,
+   PR #5)**
+4. **Allocation + planned/committed + commit/rollback.** The logical core. — *Scope additions from
+   the Phase 1–3 review (2026-07-03): engine-level ORDER BY (overflow ranking needs whole-set
+   ordering; also fixes the page-local search sort), the D13 per-stack idle rule, the D11 "Refresh
+   data" action wired to recompute (also backfills the DFC/borderColor corpus fixes), post-import
+   deck printing editing (D13), and JSON export/import of the user DB as a stretch goal (the D12
+   durability net, pulled forward from step 5).*
+5. **Skeuomorphic binder UI + positions + export.** The payoff surface (least *risky*, so it's
+   last). — *Scope additions: the D11 lazy image cache (flip-through renders 9–18 pockets per
+   spread — direct CDN loads won't hold up) and a placement-status search filter (see the D5
+   amendment).*
 
 **First concrete step:** a throwaway spike proving `drift` + `sqlite3.wasm` + OPFS download/query of
 a real Scryfall Default Cards bulk file on web. If it performs, the architecture holds.
+*(Done — the spike became Phase 1.)*
 
 ---
 

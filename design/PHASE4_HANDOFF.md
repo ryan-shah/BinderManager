@@ -55,9 +55,50 @@ Run `bd ready` / `bd prime` at session start — beads is the source of truth.
 - `ImportDiff.DiffEntry` is qty-only; condition/language-only changes commit
   correctly but don't surface in the preview.
 - `have>=N` works in raw queries only; no filter-panel control.
-- Finish-level reservation deferred here on purpose: `deck_entries.finish`
+- Finish-level reservation was deferred on purpose: `deck_entries.finish`
   (nullable) exists, so Phase 4's atomic (printing+finish) stacks need no
-  migration of deck data.
+  migration of deck data. The bridging rule is now locked as **D13** — see
+  the adjustments below.
+- Search sort is page-local: `SearchNotifier` sorts in memory after
+  fetching a page of 100, so e.g. "Price high–low" on a >100-card result
+  sorts an arbitrary first page (`BinderManager-552`). Fixed by the
+  Phase 4 ORDER BY work below.
+
+### Plan adjustments locked 2026-07-03 (post-Phase-3 review, user-confirmed)
+
+DESIGN.md now carries these as D13 + amendment notes; the decisions:
+
+1. **D13 — finish granularity for allocation:** reservation stays
+   printing-level (as built); for per-stack idle quantities, reservations
+   consume the **cheapest finish first** (finish-specific D4 price), so
+   valuable finishes stay idle for binders. Implement as a layer on
+   `ReservationSummary` (per-stack `idleOf(CardIdentity)`), no schema
+   change. Correction path: **post-import deck printing editing** in deck
+   detail (`BinderManager-wxt`) — decks often run nicer versions on
+   purpose; the import-time fidelity prompt already exists.
+2. **Engine ORDER BY (Package 0):** `QueryEngine.search()` gains ordering;
+   overflow ranking and deterministic allocation need whole-set order, and
+   it fixes `BinderManager-552`. The allocator may sort full match sets in
+   Dart (it loads them for capacity math anyway); search should use SQL
+   ORDER BY.
+3. **D7 narrowed to binder state (amendment):** snapshots cover binder
+   configs + committed placements ONLY. Imports/deck commits keep their
+   Phase 3 review gates and enter D7 as triggering events (the
+   `onCommitted` hooks). No double-commit UX; do not retrofit imports.
+4. **`unused:` stays deck-idle (D5 amendment):** cards placed in binders
+   still match `unused:true` — the allocator consumes from that same pool.
+   A placement-status filter (`in:binder` or similar) is Phase 5+.
+5. **"Refresh data" (D11) lands in Package 0:** Settings action reusing
+   `corpusImportProvider` + a recompute trigger on completion. It is now
+   load-bearing: backfills the DFC/borderColor corpus fixes, advances the
+   D4 price snapshot, and price refresh is a D7 change event.
+6. **JSON export/import of the user DB is a Phase 4 stretch goal** (Agent
+   H — snapshot serialization is nearly the same code). It's the v1
+   durability net against OPFS eviction; don't let it slip past early
+   Phase 5.
+7. **Phase 5 note:** the D11 lazy image cache is explicit Phase 5 scope
+   (flip-through renders 9–18 pockets per spread; direct CDN loads won't
+   hold up).
 
 ## Phase 4 Plan (build order step 4: "Allocation + planned/committed + commit/rollback — the logical core")
 
@@ -69,10 +110,11 @@ The skeuomorphic flip-through view (§9) is **Phase 5** — but positions
 (page/side/pocket) must be modeled and assigned in Phase 4 because D7 diffs
 emit exact location instructions ("Move Ragavan → page 3, back, pocket 5").
 
-**Branch:** `phase-4/allocation-and-commit` off `main` after PR #5 merges.
+**Branch:** `phase-4/allocation-and-commit` off `main`.
 The Phase 3 execution model worked well — repeat it: orchestrator Package 0
-(schema + routes + skeletons, one commit, strict file ownership), two
-parallel worktree agents, sequential integration.
+(schema + routes + skeletons + the shared diff/position model + engine
+ORDER BY + the "Refresh data" action, one commit, strict file ownership),
+two parallel worktree agents, sequential integration.
 
 ### Normative requirements (read D5–D7, D9 §1-2, UI_COMPONENTS §7/§8/§10 in full)
 
@@ -108,6 +150,7 @@ v1→v2 upgrade path explicitly (open a v1 in-memory DB, migrate, verify).
 ### Suggested agent split
 
 - **Agent G — allocation core + binder definition:** `binders` table,
+  the **D13 per-stack idle layer** on `ReservationSummary`,
   `lib/core/allocation/allocator.dart` (pure Dart: priority walk, atomic
   stacks, capacity/overflow, virtual mode, group+sort ordering, position
   assignment with append-within-group + reflow), binder repository +
@@ -118,10 +161,14 @@ v1→v2 upgrade path explicitly (open a v1 in-memory DB, migrate, verify).
   planned vs committed, Commit applies + checkpoints, Roll back restores,
   pin handling), change-review screen (§10) + the shared sticky
   Commit/Rollback bar (§13), diff row model with location instructions.
+  **Stretch:** JSON export/import of the user DB (adjustment 6).
 - **Integration:** wire change events (binder edits, reorders, imports via
-  the existing `onCommitted` hooks, deck commits) into staging; recompute
-  planned via `watchReservations` + QueryEngine; card/stack detail
-  placement line (§11) if time allows.
+  the existing `onCommitted` hooks, deck commits, Refresh-data completion)
+  into staging; recompute planned via `watchReservations` + QueryEngine;
+  card/stack detail placement line (§11) if time allows.
+- **Standalone (either agent or orchestrator):** post-import deck printing
+  editing in deck detail (`BinderManager-wxt`) — touches only
+  `lib/features/decks/` + `deck_repository.dart`.
 
 G and H meet at the diff data model — define it (with the position types)
 in Package 0 so both sides compile against it from the start.
@@ -132,8 +179,12 @@ Import collection + decklist → create two binders with overlapping rules
 and set priority → allocation puts each stack in exactly one binder, top
 priority wins, overflow listed → commit → edit a rule → review shows
 Add/Remove/Move with exact positions → roll back restores → re-commit →
-pinned card survives a reflow. Build gate as always: analyze info-only,
-all tests, `flutter build web`.
+pinned card survives a reflow. Plus the D13 rule: own a printing in foil +
+nonfoil, reserve some copies via a deck → the cheapest finish is consumed
+and the valuable stack shows idle/allocatable; edit the deck's printing and
+watch it correct. And: Refresh data re-downloads the corpus and stages a
+binder diff if prices moved. Build gate as always: analyze info-only, all
+tests, `flutter build web`.
 
 ## Conventions & Gotchas (carried forward + new)
 
