@@ -310,6 +310,9 @@ class DeckImportNotifier extends StateNotifier<DeckImportState> {
       format: format,
       assembled: assembled,
       shared: shared,
+      lines: shared != null
+          ? [for (final line in state.lines) line.copyWith(shared: shared)]
+          : null,
     );
   }
 
@@ -369,6 +372,11 @@ class DeckImportNotifier extends StateNotifier<DeckImportState> {
       }
 
       if (needed > 0) {
+        if (planned.isEmpty) {
+          // No owned copies at all — leave as pending pick so the user
+          // can choose a printing to add or mark unowned.
+          return line;
+        }
         final cheapest = [...resolution.candidates]..sort(_byPriceAsc);
         planned.add(PlannedEntry(
           card: cheapest.first,

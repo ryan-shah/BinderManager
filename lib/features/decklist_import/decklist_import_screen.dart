@@ -536,8 +536,7 @@ class _DecklistImportScreenState extends ConsumerState<DecklistImportScreen> {
             ),
             const SizedBox(width: AppSpacing.sm),
           ],
-          if (line.isPendingPick &&
-              state.fidelityMode == FidelityMode.pickManually) ...[
+          if (line.isPendingPick && state.fidelityMode != null) ...[
             TextButton(
               onPressed: () => _showPrintingPicker(index, line),
               child: const Text('Pick'),

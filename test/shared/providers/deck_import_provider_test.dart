@@ -188,6 +188,19 @@ void main() {
       expect(state.canCommit, isTrue);
     });
 
+    test('lines with no owned copies stay as pending picks', () async {
+      // User owns no Lightning Bolt printings at all.
+      await notifier.parseText('4 Lightning Bolt');
+      await notifier.chooseFidelity(FidelityMode.cheapestFirst);
+
+      final state = notifier.state;
+      expect(state.needsFidelity, isFalse);
+      expect(state.fidelityMode, FidelityMode.cheapestFirst);
+      expect(state.lines.single.isPendingPick, isTrue);
+      expect(state.lines.single.planned, isEmpty);
+      expect(state.canCommit, isFalse);
+    });
+
     test('exact lines claim owned copies before fidelity lines', () async {
       await addStack('bolt-2x2', 4);
 
@@ -423,6 +436,22 @@ void main() {
       expect(notifier.state.lines.single.shared, isFalse);
       // Out-of-range indexes are ignored.
       notifier.toggleEntryShared(5);
+    });
+
+    test('setMetadata shared flips all loaded lines', () async {
+      await addStack('opt-xln', 4);
+      await addStack('bolt-m10', 4);
+
+      await notifier.parseText('3 Opt (XLN) 65\n4 Lightning Bolt (M10) 146');
+      expect(notifier.state.lines.every((l) => !l.shared), isTrue);
+
+      notifier.setMetadata(shared: true);
+      expect(notifier.state.lines.every((l) => l.shared), isTrue);
+      expect(notifier.state.shared, isTrue);
+
+      notifier.setMetadata(shared: false);
+      expect(notifier.state.lines.every((l) => !l.shared), isTrue);
+      expect(notifier.state.shared, isFalse);
     });
 
     test('loadFile decodes bytes and defaults the deck name', () async {

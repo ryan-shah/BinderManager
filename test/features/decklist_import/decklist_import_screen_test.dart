@@ -453,6 +453,32 @@ void main() {
       expect(notifier.pickedPrintings.single.$2.scryfallId, 'bolt-2x2');
     });
 
+    testWidgets('cheapest-first mode shows Pick buttons for pending picks',
+        (tester) async {
+      final candidates = [
+        makeCard(),
+        makeCard(
+            id: 'bolt-2x2',
+            setCode: '2x2',
+            collectorNumber: '117',
+            priceUsd: 1.0),
+      ];
+      await pumpImport(
+        tester,
+        initialState: previewState(
+          fidelityMode: FidelityMode.cheapestFirst,
+          lines: [
+            DeckImportLine(
+              raw: rawLine(),
+              resolution: ResolvedByName(candidates),
+            ),
+          ],
+        ),
+      );
+
+      expect(find.text('Pick'), findsOneWidget);
+    });
+
     testWidgets('unowned prompt lists shortfalls and forwards the choice',
         (tester) async {
       final notifier = await pumpImport(
