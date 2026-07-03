@@ -242,6 +242,7 @@ void main() {
       expect(state.lines.single.planned.single.quantity, 4);
       expect(state.unowned, isEmpty);
       expect(state.canCommit, isTrue);
+      expect(state.sourceText, '4 Lightning Bolt (M10) 146');
     });
 
     test('picking an unowned printing is detected on commit', () async {

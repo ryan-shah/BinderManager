@@ -395,7 +395,8 @@ class DeckImportNotifier extends StateNotifier<DeckImportState> {
     );
   }
 
-  /// Resolves a pending multi-printing line to [printing].
+  /// Resolves a pending multi-printing line to [printing] and updates the
+  /// source text so the pick survives a re-parse.
   void pickPrinting(int lineIndex, Card printing) {
     if (lineIndex < 0 || lineIndex >= state.lines.length) return;
     final line = state.lines[lineIndex];
@@ -405,7 +406,31 @@ class DeckImportNotifier extends StateNotifier<DeckImportState> {
     lines[lineIndex] = line.copyWith(
       planned: [PlannedEntry(card: printing, quantity: line.raw.quantity)],
     );
-    state = state.copyWith(lines: lines);
+
+    final sourceText = _updateSourceLine(
+      state.sourceText,
+      line.raw,
+      printing,
+    );
+    state = state.copyWith(lines: lines, sourceText: sourceText);
+  }
+
+  static String _updateSourceLine(
+    String sourceText,
+    RawDeckLine raw,
+    Card printing,
+  ) {
+    final sourceLines = sourceText.split('\n');
+    final srcIndex = raw.lineNumber - 1;
+    if (srcIndex < 0 || srcIndex >= sourceLines.length) return sourceText;
+
+    final original = sourceLines[srcIndex];
+    // Preserve MTGO SB: prefix if present.
+    final sbMatch = RegExp(r'^[sS][bB]:\s*').firstMatch(original);
+    final prefix = sbMatch?[0] ?? '';
+    sourceLines[srcIndex] = '$prefix${raw.quantity} ${raw.name} '
+        '(${printing.setCode.toUpperCase()}) ${printing.collectorNumber}';
+    return sourceLines.join('\n');
   }
 
   static int _byPriceAsc(Card a, Card b) {

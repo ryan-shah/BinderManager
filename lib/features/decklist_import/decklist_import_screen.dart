@@ -233,6 +233,13 @@ class _DecklistImportScreenState extends ConsumerState<DecklistImportScreen> {
         notifier.reset();
         context.go('/decks/$deckId');
       }
+      // Sync the text field when the provider updates source text
+      // (e.g. after a printing pick). Setting controller.text does
+      // NOT fire TextField.onChanged, so this won't re-trigger parsing.
+      if (next.sourceText != (previous?.sourceText ?? '') &&
+          next.sourceText != _textController.text) {
+        _textController.text = next.sourceText;
+      }
     });
 
     final desktop = layoutModeOf(context) == LayoutMode.desktop;
