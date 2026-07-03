@@ -272,17 +272,11 @@ class DeckImportNotifier extends StateNotifier<DeckImportState> {
           ),
       ];
 
-      var unowned = const <UnownedShortfall>[];
-      if (!result.needsFidelityChoice) {
-        unowned = await _detectShortfalls(lines);
-      }
-
       state = state.copyWith(
         phase: DeckImportPhase.preview,
         lines: lines,
         errors: result.errors,
         needsFidelity: result.needsFidelityChoice,
-        unowned: unowned,
       );
     } catch (e) {
       state = state.copyWith(
@@ -386,17 +380,14 @@ class DeckImportNotifier extends StateNotifier<DeckImportState> {
       return line.copyWith(planned: planned);
     }).toList();
 
-    final unowned = await _detectShortfalls(newLines);
     state = state.copyWith(
       lines: newLines,
       needsFidelity: false,
       fidelityMode: mode,
-      unowned: unowned,
     );
   }
 
-  /// Resolves a pending multi-printing line to [printing]. Once every line
-  /// is resolved, unowned detection runs (asynchronously).
+  /// Resolves a pending multi-printing line to [printing].
   void pickPrinting(int lineIndex, Card printing) {
     if (lineIndex < 0 || lineIndex >= state.lines.length) return;
     final line = state.lines[lineIndex];
@@ -407,16 +398,6 @@ class DeckImportNotifier extends StateNotifier<DeckImportState> {
       planned: [PlannedEntry(card: printing, quantity: line.raw.quantity)],
     );
     state = state.copyWith(lines: lines);
-
-    if (!state.hasPendingPicks) {
-      _refreshShortfalls();
-    }
-  }
-
-  Future<void> _refreshShortfalls() async {
-    final unowned = await _detectShortfalls(state.lines);
-    if (!mounted) return;
-    state = state.copyWith(unowned: unowned);
   }
 
   static int _byPriceAsc(Card a, Card b) {
@@ -447,6 +428,7 @@ class DeckImportNotifier extends StateNotifier<DeckImportState> {
           lines: _markUnowned(state.lines, owned),
           unowned: const [],
         );
+        await _doCommit();
 
       case UnownedChoice.addToCollection:
         final shortfalls = state.unowned;
@@ -491,6 +473,7 @@ class DeckImportNotifier extends StateNotifier<DeckImportState> {
                 ))
             .toList();
         state = state.copyWith(lines: lines, unowned: const []);
+        await _doCommit();
     }
   }
 
@@ -578,6 +561,17 @@ class DeckImportNotifier extends StateNotifier<DeckImportState> {
   Future<void> commit() async {
     if (!state.canCommit) return;
 
+    final unowned = await _detectShortfalls(state.lines);
+    if (!mounted) return;
+    if (unowned.isNotEmpty) {
+      state = state.copyWith(unowned: unowned);
+      return;
+    }
+
+    await _doCommit();
+  }
+
+  Future<void> _doCommit() async {
     final drafts = <DeckEntryDraft>[
       for (final line in state.lines)
         for (final planned in line.planned)

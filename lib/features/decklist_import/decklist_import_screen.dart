@@ -641,7 +641,11 @@ class _PromptContent extends StatelessWidget {
         ],
         if (detail != null) ...[
           const SizedBox(height: AppSpacing.sm),
-          Text(detail!, style: AppTypography.meta),
+          Flexible(
+            child: SingleChildScrollView(
+              child: Text(detail!, style: AppTypography.meta),
+            ),
+          ),
         ],
         const SizedBox(height: AppSpacing.lg),
         for (final action in actions)
@@ -668,6 +672,12 @@ class _PromptContent extends StatelessWidget {
         ),
       );
     }
-    return content;
+    // Constrain height so the detail list scrolls instead of overflowing.
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.7,
+      ),
+      child: content,
+    );
   }
 }
