@@ -1,39 +1,30 @@
 #!/usr/bin/env python3
 """
-Convert a DelverLens backup JSON file to a ManaBox-compatible CSV.
+Convert a DelverLens backup (.dlens SQLite) to a ManaBox-compatible CSV.
 
 Usage:
-    python3 tool/delver_to_manabox.py input.json output.csv [--no-api]
+    python3 tool/delver_to_manabox.py input.dlens output.csv
+    python3 tool/delver_to_manabox.py input.dlens output.csv --include-decks
 
-DelverLens backup files are JSON. The script handles both root formats:
-  - A bare array:  [{...}, {...}]
-  - An object:     {"version": 1, "cards": [{...}, ...]}
+By default only cards in collection binders (lists.category = 1) are exported.
+Pass --include-decks to also include cards assigned to deck lists (category = 2).
 
-Cards that already carry a Scryfall ID are written directly. Cards without
-one are looked up via the Scryfall API (set + collector number, then fuzzy
-name) unless --no-api is passed, in which case they are skipped.
-
-Required ManaBox columns produced:
-  Name, Set code, Set name, Collector number, Foil, Rarity, Quantity,
-  ManaBox ID, Scryfall ID, Purchase price, Misprint, Altered, Condition,
-  Language, Purchase price currency
+ManaBox columns produced:
+    Name, Set code, Set name, Collector number, Foil, Rarity, Quantity,
+    ManaBox ID, Scryfall ID, Purchase price, Misprint, Altered, Condition,
+    Language, Purchase price currency
 """
 
 from __future__ import annotations
 
 import argparse
 import csv
-import json
+import sqlite3
 import sys
-import time
-import urllib.error
-import urllib.parse
-import urllib.request
 from pathlib import Path
 
-
 # ---------------------------------------------------------------------------
-# ManaBox column layout (must match the order ManaBox expects)
+# ManaBox column layout
 # ---------------------------------------------------------------------------
 
 MANABOX_HEADERS = [
@@ -55,260 +46,147 @@ MANABOX_HEADERS = [
 ]
 
 # ---------------------------------------------------------------------------
-# Condition mapping: DelverLens value → ManaBox value
+# Value mappings
 # ---------------------------------------------------------------------------
 
-# DelverLens stores conditions as short strings (NM, SP/LP, MP, HP, D) or
-# sometimes as integers (0 = NM … 4 = Damaged).
-_CONDITION_MAP: dict[str | int, str] = {
-    # integer variants
-    0: "near_mint",
-    1: "lightly_played",
-    2: "played",
-    3: "poor",
-    4: "poor",
-    # string short-codes
-    "nm": "near_mint",
-    "m": "near_mint",
-    "mint": "near_mint",
-    "near_mint": "near_mint",
-    "near mint": "near_mint",
-    "lp": "lightly_played",
-    "sp": "lightly_played",
-    "ex": "lightly_played",
-    "gd": "good",
-    "vg": "good",
-    "good": "good",
-    "lightly_played": "lightly_played",
-    "lightly played": "lightly_played",
-    "slightly_played": "lightly_played",
-    "slightly played": "lightly_played",
-    "mp": "played",
-    "played": "played",
-    "moderately_played": "played",
-    "moderately played": "played",
-    "hp": "poor",
-    "heavily_played": "poor",
-    "heavily played": "poor",
-    "d": "poor",
-    "damaged": "poor",
-    "poor": "poor",
+# DelverLens single-character rarity → ManaBox rarity string
+_RARITY_MAP: dict[str, str] = {
+    "C": "common",
+    "U": "uncommon",
+    "R": "rare",
+    "M": "mythic",
+    "S": "special",
+    "B": "bonus",
+    "T": "token",
+    "L": "land",
+}
+
+# DelverLens full language name → ISO 639-1 / Scryfall language code
+_LANGUAGE_MAP: dict[str, str] = {
+    "":                    "en",
+    "English":             "en",
+    "Chinese Simplified":  "zhs",
+    "Chinese Traditional": "zht",
+    "French":              "fr",
+    "German":              "de",
+    "Italian":             "it",
+    "Japanese":            "ja",
+    "Korean":              "ko",
+    "Portuguese":          "pt",
+    "Russian":             "ru",
+    "Spanish":             "es",
+}
+
+# DelverLens condition string → ManaBox condition string
+_CONDITION_MAP: dict[str, str] = {
+    "":                  "",
+    "M":                 "near_mint",
+    "NM":                "near_mint",
+    "Mint":              "near_mint",
+    "Near Mint":         "near_mint",
+    "LP":                "lightly_played",
+    "SP":                "lightly_played",
+    "EX":                "lightly_played",
+    "Lightly Played":    "lightly_played",
+    "Slightly Played":   "lightly_played",
+    "GD":                "good",
+    "VG":                "good",
+    "Good":              "good",
+    "MP":                "played",
+    "Played":            "played",
+    "Moderately Played": "played",
+    "HP":                "poor",
+    "Heavily Played":    "poor",
+    "D":                 "poor",
+    "Damaged":           "poor",
+    "Poor":              "poor",
 }
 
 
-def _map_condition(raw: object) -> str:
-    if raw is None:
-        return ""
-    if isinstance(raw, int):
-        return _CONDITION_MAP.get(raw, "")
-    return _CONDITION_MAP.get(str(raw).strip().lower(), "")
+def _map_rarity(raw: str | None) -> str:
+    return _RARITY_MAP.get(raw or "", "")
 
 
-def _map_foil(raw: object) -> str:
-    """Map a DelverLens foil value to ManaBox normal / foil / etched."""
-    if isinstance(raw, bool):
-        return "foil" if raw else "normal"
-    if isinstance(raw, str):
-        v = raw.strip().lower()
-        if v in ("true", "foil", "1", "yes"):
-            return "foil"
-        if v == "etched":
-            return "etched"
-    return "normal"
+def _map_language(raw: str | None) -> str:
+    raw = (raw or "").strip()
+    if raw in _LANGUAGE_MAP:
+        return _LANGUAGE_MAP[raw]
+    # Fall back to the first two characters lowercased (best-effort ISO code)
+    return raw[:2].lower() if raw else "en"
 
 
-# ---------------------------------------------------------------------------
-# Parsing helpers
-# ---------------------------------------------------------------------------
+def _map_condition(raw: str | None) -> str:
+    return _CONDITION_MAP.get((raw or "").strip(), "")
 
 
-def _extract_cards(data: object) -> list[dict]:
-    """Return the list of card dicts regardless of the backup's root shape."""
-    if isinstance(data, list):
-        return data
-    if isinstance(data, dict):
-        for key in ("cards", "card", "collection", "items", "data"):
-            if key in data and isinstance(data[key], list):
-                return data[key]
-    raise ValueError(
-        "Could not find a card list in the backup. "
-        "Expected a JSON array or an object with a 'cards' key."
-    )
-
-
-_UUID_RE_LEN = 36  # "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-
-
-def _looks_like_uuid(value: str) -> bool:
-    return len(value) == _UUID_RE_LEN and value.count("-") == 4
-
-
-def _get_str(card: dict, *keys: str) -> str:
-    """Return the first non-empty string among candidate keys."""
-    for key in keys:
-        v = card.get(key)
-        if v is not None:
-            s = str(v).strip()
-            if s:
-                return s
-    return ""
-
-
-def _get_scryfall_id(card: dict) -> str:
-    """
-    Extract the Scryfall UUID from a card dict.
-
-    Prefers explicit scryfall-named keys; falls back to 'id' only when it
-    looks like a UUID (36 chars, 4 hyphens) to avoid treating internal
-    integer IDs as Scryfall IDs.
-    """
-    for key in ("scryfallId", "scryfall_id"):
-        v = card.get(key)
-        if v is not None:
-            s = str(v).strip()
-            if s:
-                return s
-    # Only accept 'id' when it matches UUID format
-    v = card.get("id")
-    if v is not None:
-        s = str(v).strip()
-        if s and _looks_like_uuid(s):
-            return s
-    return ""
-
-
-def _get_quantity(card: dict) -> int:
-    for key in ("quantity", "count", "qty", "amount"):
-        v = card.get(key)
-        if v is not None:
-            try:
-                return max(1, int(v))
-            except (ValueError, TypeError):
-                pass
-    return 1
-
-
-# ---------------------------------------------------------------------------
-# Scryfall API lookups
-# ---------------------------------------------------------------------------
-
-_SCRYFALL_DELAY = 0.10  # 100 ms — Scryfall asks for ≤10 req/s
-
-
-def _scryfall_get(url: str) -> dict | None:
-    try:
-        req = urllib.request.Request(
-            url,
-            headers={"User-Agent": "delver-to-manabox/1.0 (github.com/ryan-shah/bindermanager)"},
-        )
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        if exc.code != 404:
-            print(f"  [warn] Scryfall HTTP {exc.code}: {url}", file=sys.stderr)
-        return None
-    except Exception as exc:
-        print(f"  [warn] Scryfall request failed: {exc}", file=sys.stderr)
-        return None
-
-
-def _lookup_scryfall(name: str, set_code: str, collector_number: str) -> dict | None:
-    """
-    Try to find a Scryfall card object. Prefers the precise
-    /cards/{set}/{number} endpoint; falls back to fuzzy name search.
-    """
-    if set_code and collector_number:
-        url = (
-            "https://api.scryfall.com/cards/"
-            f"{urllib.parse.quote(set_code.lower())}/"
-            f"{urllib.parse.quote(collector_number)}"
-        )
-        time.sleep(_SCRYFALL_DELAY)
-        result = _scryfall_get(url)
-        if result and result.get("object") == "card":
-            return result
-
-    if name:
-        params: dict[str, str] = {"fuzzy": name}
-        if set_code:
-            params["set"] = set_code
-        url = "https://api.scryfall.com/cards/named?" + urllib.parse.urlencode(params)
-        time.sleep(_SCRYFALL_DELAY)
-        result = _scryfall_get(url)
-        if result and result.get("object") == "card":
-            return result
-
-    return None
+def _map_foil(foil_int: int) -> str:
+    return "foil" if foil_int else "normal"
 
 
 # ---------------------------------------------------------------------------
 # Conversion
 # ---------------------------------------------------------------------------
 
+_COLLECTION_QUERY = """\
+SELECT
+    dn.name                                              AS name,
+    de.tl_abb                                            AS set_code,
+    de.name                                              AS set_name,
+    dc.number                                            AS collector_number,
+    dc.rarity                                            AS rarity,
+    c.foil                                               AS foil,
+    c.quantity                                           AS quantity,
+    c.condition                                          AS condition,
+    c.language                                           AS language,
+    c.price_acquired                                     AS price_acquired,
+    COALESCE(NULLIF(c.scryfall_id, ''), dc.scryfall_id) AS scryfall_id
+FROM  cards       c
+JOIN  data_cards  dc ON c.card      = dc._id
+JOIN  data_names  dn ON dc.name     = dn._id
+JOIN  data_editions de ON dc.edition = de._id
+JOIN  lists        l  ON c.list     = l._id
+{category_clause}
+ORDER BY l.name, dn.name
+"""
 
-def convert(input_path: Path, output_path: Path, *, no_api: bool) -> None:
-    raw_text = input_path.read_text(encoding="utf-8-sig")  # strips UTF-8 BOM
-    data = json.loads(raw_text)
-    cards = _extract_cards(data)
 
-    rows: list[dict[str, object]] = []
-    skipped = 0
+def convert(input_path: Path, output_path: Path, *, include_decks: bool) -> None:
+    conn = sqlite3.connect(str(input_path))
+    conn.row_factory = sqlite3.Row
 
-    for i, card in enumerate(cards, start=1):
-        scryfall_id = _get_scryfall_id(card)
-        name         = _get_str(card, "name", "cardName", "card_name")
-        set_code     = _get_str(card, "set", "setCode", "set_code", "edition", "editionCode")
-        set_name     = _get_str(card, "setName", "set_name", "editionName", "edition_name")
-        number       = _get_str(card, "number", "collectorNumber", "collector_number", "num")
-        rarity       = _get_str(card, "rarity")
-        language     = _get_str(card, "language", "lang")
-        purchase_price = _get_str(card, "price", "purchasePrice", "purchase_price")
+    category_clause = "" if include_decks else "WHERE l.category = 1"
+    query = _COLLECTION_QUERY.format(category_clause=category_clause)
 
-        quantity  = _get_quantity(card)
-        foil      = _map_foil(card.get("foil", False))
-        condition = _map_condition(card.get("condition", card.get("cond", card.get("grade"))))
+    cur = conn.execute(query)
 
-        # Resolve Scryfall ID when absent
+    rows: list[dict] = []
+    missing_ids = 0
+
+    for row in cur:
+        scryfall_id = row["scryfall_id"] or ""
         if not scryfall_id:
-            if no_api:
-                label = name or f"card #{i}"
-                print(f"  [skip] '{label}' has no Scryfall ID (--no-api)", file=sys.stderr)
-                skipped += 1
-                continue
+            missing_ids += 1
 
-            label = f"{name} ({set_code} #{number})" if (set_code or number) else name or f"card #{i}"
-            print(f"  Looking up {label} ...", file=sys.stderr)
-
-            sf = _lookup_scryfall(name, set_code, number)
-            if sf:
-                scryfall_id = sf.get("id", "")
-                set_code    = set_code or sf.get("set", "")
-                set_name    = set_name or sf.get("set_name", "")
-                number      = number   or sf.get("collector_number", "")
-                rarity      = rarity   or sf.get("rarity", "")
-                name        = name     or sf.get("name", "")
-            else:
-                print(f"  [skip] Could not resolve '{label}'", file=sys.stderr)
-                skipped += 1
-                continue
-
+        price = row["price_acquired"] or 0.0
         rows.append({
-            "Name":                    name,
-            "Set code":                set_code,
-            "Set name":                set_name,
-            "Collector number":        number,
-            "Foil":                    foil,
-            "Rarity":                  rarity,
-            "Quantity":                quantity,
+            "Name":                    row["name"] or "",
+            "Set code":                row["set_code"] or "",
+            "Set name":                row["set_name"] or "",
+            "Collector number":        row["collector_number"] or "",
+            "Foil":                    _map_foil(row["foil"] or 0),
+            "Rarity":                  _map_rarity(row["rarity"]),
+            "Quantity":                row["quantity"] or 1,
             "ManaBox ID":              "",
             "Scryfall ID":             scryfall_id,
-            "Purchase price":          purchase_price or "0.00",
+            "Purchase price":          f"{price:.2f}",
             "Misprint":                "false",
             "Altered":                 "false",
-            "Condition":               condition,
-            "Language":                language,
+            "Condition":               _map_condition(row["condition"]),
+            "Language":                _map_language(row["language"]),
             "Purchase price currency": "USD",
         })
+
+    conn.close()
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", newline="", encoding="utf-8") as fh:
@@ -316,9 +194,13 @@ def convert(input_path: Path, output_path: Path, *, no_api: bool) -> None:
         writer.writeheader()
         writer.writerows(rows)
 
-    print(f"\nWrote {len(rows)} row(s) to {output_path}", file=sys.stderr)
-    if skipped:
-        print(f"Skipped {skipped} card(s) with unresolvable Scryfall IDs.", file=sys.stderr)
+    print(f"Wrote {len(rows)} row(s) to {output_path}", file=sys.stderr)
+    if missing_ids:
+        print(
+            f"Warning: {missing_ids} row(s) have no Scryfall ID — "
+            "they will show as unmatched in ManaBox.",
+            file=sys.stderr,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -328,34 +210,32 @@ def convert(input_path: Path, output_path: Path, *, no_api: bool) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Convert a DelverLens backup JSON to a ManaBox-compatible CSV.",
+        description="Convert a DelverLens .dlens backup to a ManaBox-compatible CSV.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-DelverLens condition codes recognised
-  Integers : 0=NM  1=LP  2=MP  3=HP  4=Damaged
-  Strings  : NM SP LP EX GD VG MP HP D (case-insensitive)
+Foil    : cards.foil 0→normal  1→foil
+Rarity  : C→common  U→uncommon  R→rare  M→mythic  S→special  B→bonus
+Language: full name (e.g. 'Japanese') → ISO code (e.g. 'ja'); '' → 'en'
+Condition: NM/LP/MP/HP/D strings → ManaBox near_mint/lightly_played/played/poor
 
-ManaBox conditions produced
-  near_mint  good  lightly_played  played  poor
-
-Examples
-  python3 tool/delver_to_manabox.py collection.json manabox.csv
-  python3 tool/delver_to_manabox.py backup.json out.csv --no-api
+Examples:
+  python3 tool/delver_to_manabox.py 2024_Dec_01_backup.dlens manabox.csv
+  python3 tool/delver_to_manabox.py collection.dlens out.csv --include-decks
 """,
     )
-    parser.add_argument("input",  type=Path, help="DelverLens backup (.json)")
+    parser.add_argument("input",  type=Path, help="DelverLens backup (.dlens SQLite file)")
     parser.add_argument("output", type=Path, help="Output ManaBox CSV path")
     parser.add_argument(
-        "--no-api",
+        "--include-decks",
         action="store_true",
-        help="Skip Scryfall lookups; cards without a Scryfall ID are skipped instead.",
+        help="Also export cards in deck lists (default: collection binders only)",
     )
     args = parser.parse_args()
 
     if not args.input.exists():
         sys.exit(f"Error: input file not found: {args.input}")
 
-    convert(args.input, args.output, no_api=args.no_api)
+    convert(args.input, args.output, include_decks=args.include_decks)
 
 
 if __name__ == "__main__":
