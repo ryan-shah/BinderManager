@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/database/corpus_database.dart';
+import '../../core/models/ordering.dart';
 import '../../core/query/query_engine.dart';
 import 'query_provider.dart';
 
@@ -97,7 +98,11 @@ class SearchNotifier extends StateNotifier<SearchState> {
     }
 
     try {
-      final result = await _engine.search(query, limit: 100);
+      final result = await _engine.search(
+        query,
+        limit: 100,
+        order: _orderFor(state.sort),
+      );
 
       if (!result.isSuccess) {
         state = state.copyWith(
@@ -110,11 +115,8 @@ class SearchNotifier extends StateNotifier<SearchState> {
         return;
       }
 
-      var results = result.cards;
-      results = _sortResults(results, state.sort);
-
       state = state.copyWith(
-        results: results,
+        results: result.cards,
         totalCount: result.totalCount,
         isLoading: false,
       );
@@ -128,47 +130,31 @@ class SearchNotifier extends StateNotifier<SearchState> {
     }
   }
 
-  /// Update the sort order and re-sort existing results.
-  void setSort(SearchSort sort) {
-    final sorted = _sortResults(List.of(state.results), sort);
-    state = state.copyWith(sort: sort, results: sorted);
+  /// Update the sort order and re-run the query so the whole result set is
+  /// re-ordered in SQL — sorting only the fetched page would show an
+  /// arbitrary slice for results larger than one page.
+  Future<void> setSort(SearchSort sort) async {
+    if (sort == state.sort) return;
+    state = state.copyWith(sort: sort);
+    if (state.query.trim().isEmpty) return;
+    await _run(state.query);
   }
 
-  static List<Card> _sortResults(List<Card> results, SearchSort sort) {
-    switch (sort) {
-      case SearchSort.priceDesc:
-        results.sort((a, b) =>
-            (b.priceUsd ?? 0).compareTo(a.priceUsd ?? 0));
-      case SearchSort.priceAsc:
-        results.sort((a, b) =>
-            (a.priceUsd ?? 0).compareTo(b.priceUsd ?? 0));
-      case SearchSort.nameAsc:
-        results.sort((a, b) => a.name.compareTo(b.name));
-      case SearchSort.nameDesc:
-        results.sort((a, b) => b.name.compareTo(a.name));
-      case SearchSort.set_:
-        results.sort((a, b) => a.setCode.compareTo(b.setCode));
-      case SearchSort.rarity:
-        results.sort((a, b) =>
-            _rarityOrder(a.rarity).compareTo(_rarityOrder(b.rarity)));
-    }
-    return results;
-  }
-
-  static int _rarityOrder(String rarity) {
-    switch (rarity.toLowerCase()) {
-      case 'mythic':
-        return 0;
-      case 'rare':
-        return 1;
-      case 'uncommon':
-        return 2;
-      case 'common':
-        return 3;
-      default:
-        return 4;
-    }
-  }
+  static QueryOrder _orderFor(SearchSort sort) => switch (sort) {
+        SearchSort.priceDesc =>
+          const QueryOrder(OrderField.price, SortDirection.desc),
+        SearchSort.priceAsc =>
+          const QueryOrder(OrderField.price, SortDirection.asc),
+        SearchSort.nameAsc =>
+          const QueryOrder(OrderField.name, SortDirection.asc),
+        SearchSort.nameDesc =>
+          const QueryOrder(OrderField.name, SortDirection.desc),
+        SearchSort.set_ =>
+          const QueryOrder(OrderField.setCode, SortDirection.asc),
+        // Ascending rank = mythic first, matching the old in-memory sort.
+        SearchSort.rarity =>
+          const QueryOrder(OrderField.rarity, SortDirection.asc),
+      };
 }
 
 /// Provides the [SearchNotifier] and its current [SearchState].

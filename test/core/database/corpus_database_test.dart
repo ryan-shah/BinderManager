@@ -270,6 +270,45 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
+  // corpus_meta (v3)
+  // ---------------------------------------------------------------------------
+
+  group('corpus meta', () {
+    test('getMeta returns null for unset keys', () async {
+      expect(await db.getMeta('nope'), isNull);
+    });
+
+    test('setMeta round-trips and upserts', () async {
+      await db.setMeta('k', 'v1');
+      expect(await db.getMeta('k'), 'v1');
+
+      await db.setMeta('k', 'v2');
+      expect(await db.getMeta('k'), 'v2');
+    });
+
+    test('lastImportedAt parses the stored timestamp', () async {
+      expect(await db.lastImportedAt(), isNull);
+
+      final stamp = DateTime.utc(2026, 7, 4, 12, 30);
+      await db.setMeta(CorpusDatabase.metaImportedAt,
+          stamp.toIso8601String());
+
+      expect(await db.lastImportedAt(), stamp);
+    });
+
+    test('lastImportedAt survives clearAllCards (refresh wipes cards only)',
+        () async {
+      await db.into(db.cards).insert(makeTestCard(scryfallId: 'card-1'));
+      await db.setMeta(CorpusDatabase.metaImportedAt,
+          DateTime.utc(2026, 7, 4).toIso8601String());
+
+      await db.clearAllCards();
+
+      expect(await db.lastImportedAt(), isNotNull);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Field storage
   // ---------------------------------------------------------------------------
 

@@ -9,12 +9,15 @@ part 'corpus_database.g.dart';
 /// Stores every card from the Scryfall Default Cards bulk download.
 /// Used as a read-heavy reference database for card search, pricing, and
 /// identity lookups.
-@DriftDatabase(tables: [Cards])
+@DriftDatabase(tables: [Cards, CorpusMeta])
 class CorpusDatabase extends _$CorpusDatabase {
   CorpusDatabase(super.e);
 
+  /// Meta key for the ISO-8601 UTC timestamp of the last completed import.
+  static const metaImportedAt = 'imported_at';
+
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -23,6 +26,10 @@ class CorpusDatabase extends _$CorpusDatabase {
             // v2: border_color column for is:borderless queries. Existing
             // rows get null — a corpus re-download populates them.
             await m.addColumn(cards, cards.borderColor);
+          }
+          if (from < 3) {
+            // v3 (Phase 4): corpus_meta for the D11 freshness timestamp.
+            await m.createTable(corpusMeta);
           }
         },
       );
@@ -40,6 +47,25 @@ class CorpusDatabase extends _$CorpusDatabase {
     final query = selectOnly(cards)..addColumns([count]);
     final result = await query.getSingle();
     return result.read(count)!;
+  }
+
+  /// Reads a corpus metadata value, or null if unset.
+  Future<String?> getMeta(String key) async {
+    final row = await (select(corpusMeta)..where((m) => m.key.equals(key)))
+        .getSingleOrNull();
+    return row?.value;
+  }
+
+  /// Writes (upserts) a corpus metadata value.
+  Future<void> setMeta(String key, String value) =>
+      into(corpusMeta).insertOnConflictUpdate(
+        CorpusMetaCompanion.insert(key: key, value: value),
+      );
+
+  /// When the corpus was last imported, or null if never recorded.
+  Future<DateTime?> lastImportedAt() async {
+    final raw = await getMeta(metaImportedAt);
+    return raw == null ? null : DateTime.tryParse(raw);
   }
 
   // ---------------------------------------------------------------------------

@@ -62,3 +62,20 @@ class Cards extends Table {
   @override
   String get tableName => 'cards';
 }
+
+/// Key-value metadata about the corpus itself (e.g. when it was last
+/// imported, for the D11 staleness/refresh UI).
+///
+/// Lives in the corpus database on purpose: wiping the corpus wipes its
+/// freshness timestamp with it.
+@DataClassName('CorpusMetaRow')
+class CorpusMeta extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text()();
+
+  @override
+  Set<Column> get primaryKey => {key};
+
+  @override
+  String get tableName => 'corpus_meta';
+}

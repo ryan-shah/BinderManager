@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'app/corpus_refresh_listener.dart';
 import 'app/router.dart';
 import 'app/theme.dart';
 
@@ -14,11 +15,13 @@ class BinderManagerApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
 
-    return MaterialApp.router(
-      title: 'BinderManager',
-      theme: buildAppTheme(),
-      routerConfig: router,
-      debugShowCheckedModeBanner: false,
+    return CorpusRefreshListener(
+      child: MaterialApp.router(
+        title: 'BinderManager',
+        theme: buildAppTheme(),
+        routerConfig: router,
+        debugShowCheckedModeBanner: false,
+      ),
     );
   }
 }
