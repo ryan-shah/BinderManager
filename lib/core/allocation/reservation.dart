@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 
 import '../database/tables/deck_tables.dart';
 import '../database/user_database.dart';
+import '../models/card_identity.dart';
 
 /// Owned/reserved/idle quantities per printing (scryfallId).
 ///
@@ -156,4 +157,92 @@ Stream<ReservationSummary> watchReservations(UserDatabase db) {
   );
 
   return controller.stream;
+}
+
+// ---------------------------------------------------------------------------
+// D13 — per-stack idle layer
+// ---------------------------------------------------------------------------
+
+/// Owned/idle quantities per atomic (printing, finish) stack (D13).
+///
+/// Reservations are per printing with finishes pooled ([ReservationSummary]);
+/// D6 allocation needs idle quantities per atomic stack. This layer
+/// distributes each printing's reserved count across its stacks **cheapest
+/// finish first** (finish-specific D4 price), so the most valuable finishes
+/// stay idle for binders. Stacks of the same (scryfallId, finish) are merged
+/// across provenances — allocation is physical; provenance is bookkeeping.
+class StackIdleSummary {
+  StackIdleSummary({
+    required Map<CardIdentity, int> ownedByStack,
+    required Map<CardIdentity, int> idleByStack,
+  })  : ownedByStack = Map.unmodifiable(ownedByStack),
+        idleByStack = Map.unmodifiable(idleByStack);
+
+  /// Total owned copies per stack, merged across provenances.
+  final Map<CardIdentity, int> ownedByStack;
+
+  /// Copies free for binders per stack, after cheapest-first reservation.
+  final Map<CardIdentity, int> idleByStack;
+
+  int ownedOf(CardIdentity identity) => ownedByStack[identity] ?? 0;
+
+  int idleOf(CardIdentity identity) => idleByStack[identity] ?? 0;
+
+  /// Stacks with at least one idle copy.
+  Set<CardIdentity> get idleStacks => {
+        for (final entry in idleByStack.entries)
+          if (entry.value > 0) entry.key,
+      };
+}
+
+/// Computes per-stack idle quantities from the printing-level
+/// [reservations] (D13). Pure Dart — no database access.
+///
+/// Per printing, the reserved count (clamped to the owned count, exactly
+/// like [ReservationSummary.idleOf], so over-reservation never goes
+/// negative) is consumed from that printing's stacks **cheapest finish
+/// first**. [priceOf] supplies the finish-specific D4 price; a null price
+/// counts as 0 (cheapest). Equal prices tie-break in [Finish] enum order
+/// (nonfoil, foil, etched) so the distribution is deterministic.
+StackIdleSummary computeStackIdle({
+  required List<StackRow> stacks,
+  required ReservationSummary reservations,
+  required double? Function(CardIdentity identity) priceOf,
+}) {
+  // Merge stacks of the same (scryfallId, finish) across provenances.
+  final owned = <CardIdentity, int>{};
+  for (final stack in stacks) {
+    final identity = CardIdentity(stack.scryfallId, stack.finish);
+    owned[identity] = (owned[identity] ?? 0) + stack.quantity;
+  }
+
+  // Group the merged stacks by printing.
+  final stacksByPrinting = <String, List<CardIdentity>>{};
+  for (final identity in owned.keys) {
+    stacksByPrinting.putIfAbsent(identity.scryfallId, () => []).add(identity);
+  }
+
+  final idle = <CardIdentity, int>{};
+  for (final entry in stacksByPrinting.entries) {
+    final identities = entry.value
+      ..sort((a, b) {
+        final byPrice = (priceOf(a) ?? 0).compareTo(priceOf(b) ?? 0);
+        if (byPrice != 0) return byPrice;
+        return a.finish.index.compareTo(b.finish.index);
+      });
+
+    final ownedTotal =
+        identities.fold<int>(0, (sum, id) => sum + owned[id]!);
+    // Clamp exactly like ReservationSummary.idleOf: reserved beyond owned
+    // consumes everything but never goes negative.
+    var toConsume = min(reservations.reservedOf(entry.key), ownedTotal);
+
+    for (final identity in identities) {
+      final consumed = min(toConsume, owned[identity]!);
+      toConsume -= consumed;
+      idle[identity] = owned[identity]! - consumed;
+    }
+  }
+
+  return StackIdleSummary(ownedByStack: owned, idleByStack: idle);
 }
