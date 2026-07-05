@@ -56,6 +56,13 @@ final deckCardsProvider =
   return {for (final c in cards) c.scryfallId: c};
 });
 
+/// All printings of one oracle identity, newest first — candidates for the
+/// deck-detail printing editor (D13 correction path).
+final printingsOfOracleProvider =
+    FutureProvider.family<List<Card>, String>((ref, oracleId) {
+  return ref.watch(corpusDatabaseProvider).printingsOfOracle(oracleId);
+});
+
 // ---------------------------------------------------------------------------
 // Decklist import state machine
 // ---------------------------------------------------------------------------

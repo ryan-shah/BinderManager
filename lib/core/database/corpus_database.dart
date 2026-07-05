@@ -95,4 +95,17 @@ class CorpusDatabase extends _$CorpusDatabase {
     return (select(cards)..where((c) => c.scryfallId.equals(scryfallId)))
         .getSingleOrNull();
   }
+
+  /// All printings sharing one oracle identity, newest release first —
+  /// the candidate list for changing a deck entry's printing (D13).
+  Future<List<Card>> printingsOfOracle(String oracleId) {
+    return (select(cards)
+          ..where((c) => c.oracleId.equals(oracleId))
+          ..orderBy([
+            (c) => OrderingTerm.desc(c.releasedAt),
+            (c) => OrderingTerm.asc(c.setCode),
+            (c) => OrderingTerm.asc(c.collectorNumber),
+          ]))
+        .get();
+  }
 }

@@ -181,6 +181,39 @@ void main() {
       expect(others.every((e) => !e.isShared || e.scryfallId == 'duress-xln'),
           isTrue);
     });
+
+    test('setEntryPrinting re-points the entry and marks it deliberate',
+        () async {
+      var now = DateTime.utc(2026, 7, 1, 12, 0, 0);
+      final repo = DeckRepository(db, now: () => now);
+      await repo.createDeck(
+        name: 'Burn',
+        isAssembled: true,
+        isShared: false,
+        entries: drafts,
+      );
+      // Opt resolved cheapest-first (printingSpecified false).
+      final entry = (await db.select(db.deckEntries).get())
+          .singleWhere((e) => e.scryfallId == 'opt-xln');
+      expect(entry.printingSpecified, isFalse);
+
+      now = DateTime.utc(2026, 7, 1, 12, 0, 7);
+      await repo.setEntryPrinting(entry.id, 'opt-inv');
+
+      final updated = (await db.select(db.deckEntries).get())
+          .singleWhere((e) => e.id == entry.id);
+      expect(updated.scryfallId, 'opt-inv');
+      expect(updated.printingSpecified, isTrue);
+      expect(updated.updatedAt.toUtc(), DateTime.utc(2026, 7, 1, 12, 0, 7));
+      // Name and quantity survive; the entry identity is stable.
+      expect(updated.cardName, 'Opt');
+      expect(updated.quantity, 3);
+
+      // Other entries untouched.
+      final bolt = (await db.select(db.deckEntries).get())
+          .singleWhere((e) => e.cardName == 'Lightning Bolt');
+      expect(bolt.scryfallId, 'bolt-m10');
+    });
   });
 
   group('watchDecks', () {

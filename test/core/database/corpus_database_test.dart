@@ -270,6 +270,47 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
+  // printingsOfOracle
+  // ---------------------------------------------------------------------------
+
+  group('printingsOfOracle', () {
+    setUp(() async {
+      await db.into(db.cards).insert(makeTestCard(
+            scryfallId: 'bolt-m10',
+            oracleId: 'oracle-bolt',
+            name: 'Lightning Bolt',
+            setCode: 'm10',
+            releasedAt: '2009-07-17',
+          ));
+      await db.into(db.cards).insert(makeTestCard(
+            scryfallId: 'bolt-lea',
+            oracleId: 'oracle-bolt',
+            name: 'Lightning Bolt',
+            setCode: 'lea',
+            releasedAt: '1993-08-05',
+          ));
+      await db.into(db.cards).insert(makeTestCard(
+            scryfallId: 'opt-xln',
+            oracleId: 'oracle-opt',
+            name: 'Opt',
+            setCode: 'xln',
+            releasedAt: '2017-09-29',
+          ));
+    });
+
+    test('returns all printings of the oracle identity, newest first',
+        () async {
+      final printings = await db.printingsOfOracle('oracle-bolt');
+      expect(printings.map((c) => c.scryfallId).toList(),
+          ['bolt-m10', 'bolt-lea']);
+    });
+
+    test('returns empty for an unknown oracle id', () async {
+      expect(await db.printingsOfOracle('oracle-nope'), isEmpty);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // corpus_meta (v3)
   // ---------------------------------------------------------------------------
 

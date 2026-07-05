@@ -48,6 +48,28 @@ class _DeckDetailView extends ConsumerWidget {
   // Actions
   // ---------------------------------------------------------------------------
 
+  /// D13 correction path: re-point an entry at another printing of the
+  /// same card (decks often run nicer versions than cheapest-first).
+  Future<void> _changePrinting(
+    BuildContext context,
+    WidgetRef ref,
+    DeckEntryRow entry,
+    Card card,
+  ) async {
+    final picked = await showDialog<Card>(
+      context: context,
+      builder: (_) => _PrintingPickerDialog(
+        cardName: entry.cardName,
+        oracleId: card.oracleId,
+        currentScryfallId: entry.scryfallId,
+      ),
+    );
+    if (picked == null || picked.scryfallId == entry.scryfallId) return;
+    await ref
+        .read(deckRepositoryProvider)
+        .setEntryPrinting(entry.id, picked.scryfallId);
+  }
+
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -198,6 +220,10 @@ class _DeckDetailView extends ConsumerWidget {
                     (reservations?.reservedOf(entry.scryfallId) ?? 0) > 0,
                 onSharedChanged: (v) =>
                     repository.setEntryShared(entry.id, v),
+                onChangePrinting: cards[entry.scryfallId] == null
+                    ? null
+                    : () => _changePrinting(
+                        context, ref, entry, cards[entry.scryfallId]!),
               ),
             const SizedBox(height: AppSpacing.lg),
           ],
@@ -222,6 +248,10 @@ class _DeckDetailView extends ConsumerWidget {
                     reserved: false,
                     onSharedChanged: (v) =>
                         repository.setEntryShared(entry.id, v),
+                    onChangePrinting: cards[entry.scryfallId] == null
+                        ? null
+                        : () => _changePrinting(
+                            context, ref, entry, cards[entry.scryfallId]!),
                   ),
               ],
             ),
@@ -269,12 +299,17 @@ class _EntryRow extends StatelessWidget {
     required this.card,
     required this.reserved,
     required this.onSharedChanged,
+    this.onChangePrinting,
   });
 
   final DeckEntryRow entry;
   final Card? card;
   final bool reserved;
   final ValueChanged<bool> onSharedChanged;
+
+  /// Opens the printing picker (D13 correction path); null when the
+  /// printing can't be resolved against the corpus.
+  final VoidCallback? onChangePrinting;
 
   @override
   Widget build(BuildContext context) {
@@ -297,12 +332,24 @@ class _EntryRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (entry.printingSpecified && card != null) ...[
+          // The resolved printing is always shown (not just when the import
+          // specified one): it's what reservations consume, and the edit
+          // affordance next to it is the D13 correction path.
+          if (card != null) ...[
             Text(
               '(${card!.setCode.toUpperCase()}) ${card!.collectorNumber}',
               style: AppTypography.meta,
             ),
-            const SizedBox(width: AppSpacing.sm),
+            IconButton(
+              icon: const Icon(Icons.swap_horiz, size: 16),
+              tooltip: 'Change printing',
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints:
+                  const BoxConstraints(minWidth: 28, minHeight: 28),
+              onPressed: onChangePrinting,
+            ),
+            const SizedBox(width: AppSpacing.xs),
           ],
           if (reserved) ...[
             Container(
@@ -327,6 +374,114 @@ class _EntryRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Lists every printing of one oracle identity (newest first); pops with
+/// the chosen [Card]. Shows owned quantities so the user can pick the
+/// version actually sleeved in the deck (D13).
+class _PrintingPickerDialog extends ConsumerWidget {
+  const _PrintingPickerDialog({
+    required this.cardName,
+    required this.oracleId,
+    required this.currentScryfallId,
+  });
+
+  final String cardName;
+  final String oracleId;
+  final String currentScryfallId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final printingsAsync = ref.watch(printingsOfOracleProvider(oracleId));
+    final reservations = ref.watch(reservationProvider).valueOrNull;
+
+    return AlertDialog(
+      title: Text('Printing — $cardName', style: AppTypography.headingSm),
+      content: SizedBox(
+        width: 440,
+        height: 360,
+        child: printingsAsync.when(
+          data: (printings) => printings.isEmpty
+              ? Center(
+                  child: Text(
+                    'No printings found in the card database.',
+                    style: AppTypography.bodySm,
+                  ),
+                )
+              : ListView(
+                  children: [
+                    for (final printing in printings)
+                      _PrintingOption(
+                        printing: printing,
+                        isCurrent:
+                            printing.scryfallId == currentScryfallId,
+                        ownedCount:
+                            reservations?.ownedOf(printing.scryfallId) ?? 0,
+                        onTap: () => Navigator.of(context).pop(printing),
+                      ),
+                  ],
+                ),
+          loading: () =>
+              const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(
+            child: Text(
+              'Failed to load printings: $e',
+              style: AppTypography.bodySm,
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+      ],
+    );
+  }
+}
+
+class _PrintingOption extends StatelessWidget {
+  const _PrintingOption({
+    required this.printing,
+    required this.isCurrent,
+    required this.ownedCount,
+    required this.onTap,
+  });
+
+  final Card printing;
+  final bool isCurrent;
+  final int ownedCount;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final price = printing.priceUsd;
+    final details = [
+      printing.rarity,
+      if (price != null) '\$${price.toStringAsFixed(2)}',
+      if (ownedCount > 0) '$ownedCount owned',
+    ].join(' · ');
+
+    return ListTile(
+      dense: true,
+      selected: isCurrent,
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      title: Text(
+        '(${printing.setCode.toUpperCase()}) ${printing.collectorNumber}'
+        ' — ${printing.setName}',
+        style: AppTypography.bodySm,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(details, style: AppTypography.meta),
+      trailing: isCurrent
+          ? const Icon(Icons.check, size: 16)
+          : null,
+      onTap: onTap,
     );
   }
 }
