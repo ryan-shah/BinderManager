@@ -51,20 +51,66 @@ bd close <id>         # Complete work
 <!-- END BEADS INTEGRATION -->
 
 
+## Phase Status Document (MANDATORY)
+
+Long sessions on this project have repeatedly died to timeouts and plan
+limits mid-task, losing context. To make every session resumable:
+
+- Each phase keeps a **living status doc** at
+  `design/PHASE<N>_CURRENT_STATUS.md` (e.g. `design/PHASE4_CURRENT_STATUS.md`).
+- **At session start:** read the current phase's status doc first (plus
+  `bd prime` output). It says exactly where the last session stopped.
+- **During the session:** update the doc at every meaningful checkpoint —
+  after merges, after test runs, when starting/finishing a work item, and
+  especially BEFORE kicking off anything long-running (test suites,
+  builds, background agents). Assume the session can be killed at any
+  moment; the doc must always reflect reality.
+- **At session end:** update it as part of the close protocol, then push.
+- Beads remains the source of truth for *issues*; the status doc is the
+  narrative "where exactly were we" layer (uncommitted state, in-flight
+  worktrees, known-failing tests, next command to run).
+- When a phase completes, fold anything durable into the next phase's
+  handoff doc; the status doc for a finished phase stops being updated.
+
 ## Build & Test
 
-_Add your build and test commands here_
+Flutter web app (Dart). Codegen via build_runner (`.g.dart` is gitignored).
 
 ```bash
-# Example:
-# npm install
-# npm test
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs   # after schema/table changes, and in fresh worktrees
+flutter analyze            # gate: no warnings/errors (infos OK)
+flutter test --timeout 30s # gate: ALWAYS pass --timeout (see below)
+flutter build web          # gate before ending a phase session
 ```
 
-## Architecture Overview
+**Test-run rules (learned the hard way, 2026-07-05):**
 
-_Add a brief overview of your project architecture_
+- The full suite is FAST (~700 tests in ~1 min). If a run stalls for
+  minutes, it is wedged — do not just wait.
+- **Known wedge:** a `testWidgets` failure of the form "A Timer is still
+  pending" (drift closes query streams with zero-duration timers at
+  ProviderScope disposal) can wedge the flutter_tester process right
+  after the `[E]` line, stalling the whole run at 0 CPU. Fix: end any
+  widget test whose tree holds live drift `watch()` streams with
+  `await tester.pumpWidget(const SizedBox.shrink()); await
+  tester.pump(const Duration(milliseconds: 1));` — the nonzero duration
+  is required (a bare `pump()` does not advance fake time). See
+  `unmountAndFlush` in `test/features/binders_list/binders_list_screen_test.dart`.
+- `--timeout 30s` bounds plain `test()`s but NOT `testWidgets` (its
+  10-minute internal default wins), so it will not rescue a wedged run.
+- Run suites in the background, redirect output to a file, and poll the
+  file — never pipe through buffering commands (`Select-Object`, `head`)
+  or you fly blind. Testers idling at 0 CPU right after run start is
+  normal kernel compilation, not a hang.
+- Checkpoint the phase status doc BEFORE starting a long run.
 
 ## Conventions & Patterns
 
-_Add your project-specific conventions here_
+- `git commit -F <file>` for multi-line commit messages (PowerShell 5.1).
+- Test fakes must mirror every public member of the class they fake.
+- Worktree agents: commit with a clear prefix, never push; worktree state
+  is the only artifact if the agent dies — check worktrees before
+  assuming work was lost.
+- Design docs live in `design/` (DESIGN.md, per-phase handoffs, the
+  current-status doc above).
