@@ -10,7 +10,10 @@ import 'package:binder_manager/core/database/tables/deck_tables.dart';
 import 'package:binder_manager/core/database/user_database.dart';
 import 'package:binder_manager/core/decks/deck_repository.dart';
 import 'package:binder_manager/features/decks/deck_detail_screen.dart';
+import 'package:binder_manager/shared/providers/binder_providers.dart';
 import 'package:binder_manager/shared/providers/deck_providers.dart';
+
+import '../../helpers/fake_binder_change_stager.dart';
 
 final _t = DateTime.utc(2026, 7, 1);
 
@@ -20,6 +23,7 @@ class FakeDeckRepository implements DeckRepository {
   final sharedCalls = <(String, bool)>[];
   final assembledCalls = <(String, bool)>[];
   final entrySharedCalls = <(String, bool)>[];
+  final entryPrintingCalls = <(String, String)>[];
 
   @override
   Future<String> createDeck({
@@ -45,6 +49,10 @@ class FakeDeckRepository implements DeckRepository {
   @override
   Future<void> setEntryShared(String entryId, bool shared) async =>
       entrySharedCalls.add((entryId, shared));
+
+  @override
+  Future<void> setEntryPrinting(String entryId, String scryfallId) async =>
+      entryPrintingCalls.add((entryId, scryfallId));
 
   @override
   Stream<List<DeckListItem>> watchDecks() => Stream.value(const []);
@@ -124,9 +132,11 @@ Card makeCard({
 
 void main() {
   late FakeDeckRepository repository;
+  late FakeBinderChangeStager stager;
 
   setUp(() {
     repository = FakeDeckRepository();
+    stager = FakeBinderChangeStager();
   });
 
   Future<void> pumpDetail(
@@ -134,6 +144,7 @@ void main() {
     required DeckDetail? detail,
     ReservationSummary? reservations,
     Map<String, Card> cards = const {},
+    List<Card> printings = const [],
   }) async {
     final summary = reservations ??
         ReservationSummary(ownedByPrinting: {}, reservedByPrinting: {});
@@ -162,6 +173,8 @@ void main() {
           deckDetailProvider.overrideWith((_, _) => Stream.value(detail)),
           reservationProvider.overrideWith((_) => Stream.value(summary)),
           deckCardsProvider.overrideWith((_, _) async => cards),
+          printingsOfOracleProvider.overrideWith((_, _) async => printings),
+          binderChangeStagerProvider.overrideWithValue(stager),
         ],
         child: MaterialApp.router(
           routerConfig: router,
@@ -215,7 +228,8 @@ void main() {
       expect(find.text('Duress'), findsOneWidget);
       expect(find.text('4×'), findsOneWidget);
       expect(find.text('2×'), findsOneWidget);
-      // Printing shown only for the printing-specified entry.
+      // Printing shown for entries resolvable against the corpus (Duress
+      // has no card in the map, so no chip).
       expect(find.text('(M10) 146'), findsOneWidget);
       expect(
         find.text('Cards this deck reserves from your collection: 6'),
@@ -383,6 +397,94 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Decks List'), findsOneWidget);
+    });
+  });
+
+  group('printing editor (D13 correction path)', () {
+    final detail = DeckDetail(
+      deck: makeDeck(),
+      entries: [
+        makeEntry(
+          id: 'e1',
+          scryfallId: 'bolt-m10',
+          cardName: 'Lightning Bolt',
+        ),
+      ],
+    );
+    final printings = [
+      makeCard(id: 'bolt-lea', name: 'Lightning Bolt', setCode: 'lea',
+          collectorNumber: '161'),
+      makeCard(id: 'bolt-m10', name: 'Lightning Bolt'),
+    ];
+
+    testWidgets('picker lists printings and re-points the entry',
+        (tester) async {
+      await pumpDetail(
+        tester,
+        detail: detail,
+        cards: {'bolt-m10': makeCard(id: 'bolt-m10', name: 'Lightning Bolt')},
+        printings: printings,
+        reservations: ReservationSummary(
+          ownedByPrinting: {'bolt-lea': 2},
+          reservedByPrinting: {},
+        ),
+      );
+
+      await tester.tap(find.byIcon(Icons.swap_horiz));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Printing — Lightning Bolt'), findsOneWidget);
+      expect(find.text('(LEA) 161 — Set lea'), findsOneWidget);
+      expect(find.text('(M10) 146 — Set m10'), findsOneWidget);
+      // Current printing is marked; owned count shows on the LEA option.
+      expect(find.byIcon(Icons.check), findsOneWidget);
+      expect(find.textContaining('2 owned'), findsOneWidget);
+
+      await tester.tap(find.text('(LEA) 161 — Set lea'));
+      await tester.pumpAndSettle();
+
+      expect(repository.entryPrintingCalls, [('e1', 'bolt-lea')]);
+      expect(find.text('Printing — Lightning Bolt'), findsNothing);
+    });
+
+    testWidgets('choosing the current printing is a no-op', (tester) async {
+      await pumpDetail(
+        tester,
+        detail: detail,
+        cards: {'bolt-m10': makeCard(id: 'bolt-m10', name: 'Lightning Bolt')},
+        printings: printings,
+      );
+
+      await tester.tap(find.byIcon(Icons.swap_horiz));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('(M10) 146 — Set m10'));
+      await tester.pumpAndSettle();
+
+      expect(repository.entryPrintingCalls, isEmpty);
+    });
+
+    testWidgets('cancel leaves the entry unchanged', (tester) async {
+      await pumpDetail(
+        tester,
+        detail: detail,
+        cards: {'bolt-m10': makeCard(id: 'bolt-m10', name: 'Lightning Bolt')},
+        printings: printings,
+      );
+
+      await tester.tap(find.byIcon(Icons.swap_horiz));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(repository.entryPrintingCalls, isEmpty);
+    });
+
+    testWidgets('no edit affordance when the printing is not in the corpus',
+        (tester) async {
+      await pumpDetail(tester, detail: detail);
+
+      // Unresolvable entry: no chip, and the picker cannot open.
+      expect(find.byIcon(Icons.swap_horiz), findsNothing);
     });
   });
 }

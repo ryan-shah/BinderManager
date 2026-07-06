@@ -151,6 +151,21 @@ class DeckRepository {
         ),
       );
 
+  /// Re-points an entry at a different printing — the D13 correction path
+  /// for decks that run nicer versions than the cheapest-first default.
+  ///
+  /// Marks the printing as user-specified so re-imports and fidelity logic
+  /// treat it as deliberate. Reservations follow automatically: they are
+  /// computed per printing from deck_entries.
+  Future<void> setEntryPrinting(String entryId, String scryfallId) =>
+      (_db.update(_db.deckEntries)..where((e) => e.id.equals(entryId))).write(
+        DeckEntriesCompanion(
+          scryfallId: Value(scryfallId),
+          printingSpecified: const Value(true),
+          updatedAt: Value(_now()),
+        ),
+      );
+
   // ---------------------------------------------------------------------------
   // Watches
   // ---------------------------------------------------------------------------

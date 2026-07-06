@@ -270,6 +270,86 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
+  // printingsOfOracle
+  // ---------------------------------------------------------------------------
+
+  group('printingsOfOracle', () {
+    setUp(() async {
+      await db.into(db.cards).insert(makeTestCard(
+            scryfallId: 'bolt-m10',
+            oracleId: 'oracle-bolt',
+            name: 'Lightning Bolt',
+            setCode: 'm10',
+            releasedAt: '2009-07-17',
+          ));
+      await db.into(db.cards).insert(makeTestCard(
+            scryfallId: 'bolt-lea',
+            oracleId: 'oracle-bolt',
+            name: 'Lightning Bolt',
+            setCode: 'lea',
+            releasedAt: '1993-08-05',
+          ));
+      await db.into(db.cards).insert(makeTestCard(
+            scryfallId: 'opt-xln',
+            oracleId: 'oracle-opt',
+            name: 'Opt',
+            setCode: 'xln',
+            releasedAt: '2017-09-29',
+          ));
+    });
+
+    test('returns all printings of the oracle identity, newest first',
+        () async {
+      final printings = await db.printingsOfOracle('oracle-bolt');
+      expect(printings.map((c) => c.scryfallId).toList(),
+          ['bolt-m10', 'bolt-lea']);
+    });
+
+    test('returns empty for an unknown oracle id', () async {
+      expect(await db.printingsOfOracle('oracle-nope'), isEmpty);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // corpus_meta (v3)
+  // ---------------------------------------------------------------------------
+
+  group('corpus meta', () {
+    test('getMeta returns null for unset keys', () async {
+      expect(await db.getMeta('nope'), isNull);
+    });
+
+    test('setMeta round-trips and upserts', () async {
+      await db.setMeta('k', 'v1');
+      expect(await db.getMeta('k'), 'v1');
+
+      await db.setMeta('k', 'v2');
+      expect(await db.getMeta('k'), 'v2');
+    });
+
+    test('lastImportedAt parses the stored timestamp', () async {
+      expect(await db.lastImportedAt(), isNull);
+
+      final stamp = DateTime.utc(2026, 7, 4, 12, 30);
+      await db.setMeta(CorpusDatabase.metaImportedAt,
+          stamp.toIso8601String());
+
+      expect(await db.lastImportedAt(), stamp);
+    });
+
+    test('lastImportedAt survives clearAllCards (refresh wipes cards only)',
+        () async {
+      await db.into(db.cards).insert(makeTestCard(scryfallId: 'card-1'));
+      await db.setMeta(CorpusDatabase.metaImportedAt,
+          DateTime.utc(2026, 7, 4).toIso8601String());
+
+      await db.clearAllCards();
+
+      expect(await db.lastImportedAt(), isNotNull);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Field storage
   // ---------------------------------------------------------------------------
 

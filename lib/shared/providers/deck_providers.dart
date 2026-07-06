@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -11,7 +12,9 @@ import '../../core/database/corpus_database.dart';
 import '../../core/database/user_database.dart';
 import '../../core/decks/deck_repository.dart';
 import '../../core/import/decklist_parser.dart';
+import '../../core/models/binder_diff.dart';
 import '../../core/models/card_identity.dart';
+import 'binder_providers.dart';
 import 'corpus_provider.dart';
 import 'search_provider.dart';
 import 'user_database_provider.dart';
@@ -54,6 +57,13 @@ final deckCardsProvider =
         ..where((c) => c.scryfallId.isIn(ids)))
       .get();
   return {for (final c in cards) c.scryfallId: c};
+});
+
+/// All printings of one oracle identity, newest first — candidates for the
+/// deck-detail printing editor (D13 correction path).
+final printingsOfOracleProvider =
+    FutureProvider.family<List<Card>, String>((ref, oracleId) {
+  return ref.watch(corpusDatabaseProvider).printingsOfOracle(oracleId);
 });
 
 // ---------------------------------------------------------------------------
@@ -628,6 +638,12 @@ final deckImportProvider =
     DecklistParser(ref.watch(corpusDatabaseProvider)),
     ref.watch(deckRepositoryProvider),
     ref.watch(userDatabaseProvider),
-    onCommitted: () => ref.read(searchProvider.notifier).refresh(),
+    onCommitted: () {
+      ref.read(searchProvider.notifier).refresh();
+      // A deck commit changes reservations — a D7 change event.
+      unawaited(
+        ref.read(binderChangeStagerProvider).stage(ChangeTrigger.deckChange),
+      );
+    },
   );
 });

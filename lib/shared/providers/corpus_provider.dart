@@ -34,6 +34,16 @@ final corpusReadyProvider = FutureProvider<bool>((ref) async {
   return count > 0;
 });
 
+/// When the corpus was last imported (D11 freshness), or null if unknown.
+///
+/// Recomputes whenever an import completes, so the Settings timestamp and
+/// staleness UI update live.
+final corpusLastUpdatedProvider = FutureProvider<DateTime?>((ref) async {
+  ref.watch(corpusImportProvider.select((s) => s.complete));
+  final database = ref.watch(corpusDatabaseProvider);
+  return database.lastImportedAt();
+});
+
 // ---------------------------------------------------------------------------
 // Import pipeline
 // ---------------------------------------------------------------------------
@@ -155,6 +165,13 @@ class CorpusImportNotifier extends StateNotifier<CorpusImportState> {
             cardsImported: processed,
           );
         },
+      );
+
+      // Record the D4/D11 price-snapshot timestamp before flipping to
+      // complete, so anything reacting to completion sees it already set.
+      await _db.setMeta(
+        CorpusDatabase.metaImportedAt,
+        DateTime.now().toUtc().toIso8601String(),
       );
 
       state = CorpusImportState(

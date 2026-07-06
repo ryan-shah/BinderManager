@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -71,6 +72,50 @@ void main() {
       await notifier.refresh();
       expect(notifier.state.results, isEmpty);
       expect(notifier.state.isLoading, isFalse);
+    });
+  });
+
+  group('SearchNotifier.setSort', () {
+    setUp(() async {
+      // A second card, pricier than Bolt, so sort order is observable.
+      await corpus.into(corpus.cards).insert(CardsCompanion.insert(
+            scryfallId: 'goyf-1',
+            oracleId: 'oracle-2',
+            name: 'Tarmogoyf',
+            cmc: 2,
+            typeLine: 'Creature',
+            colorIdentity: 'G',
+            setCode: 'mh2',
+            setName: 'Modern Horizons 2',
+            collectorNumber: '2',
+            rarity: 'mythic',
+            finishes: 'nonfoil',
+            layout: 'normal',
+            releasedAt: '2021-06-18',
+            priceUsd: const Value(15.0),
+          ));
+      await (corpus.update(corpus.cards)
+            ..where((c) => c.scryfallId.equals('bolt-1')))
+          .write(const CardsCompanion(priceUsd: Value(2.5)));
+    });
+
+    test('re-runs the query so the whole result set is re-ordered', () async {
+      await notifier.search('usd>0');
+      // Default sort is name asc.
+      expect(notifier.state.results.map((c) => c.name).toList(),
+          ['Lightning Bolt', 'Tarmogoyf']);
+
+      await notifier.setSort(SearchSort.priceDesc);
+      expect(notifier.state.sort, SearchSort.priceDesc);
+      expect(notifier.state.results.map((c) => c.name).toList(),
+          ['Tarmogoyf', 'Lightning Bolt']);
+    });
+
+    test('same sort is a no-op', () async {
+      await notifier.search('usd>0');
+      final before = notifier.state.results;
+      await notifier.setSort(notifier.state.sort);
+      expect(identical(notifier.state.results, before), isTrue);
     });
   });
 }

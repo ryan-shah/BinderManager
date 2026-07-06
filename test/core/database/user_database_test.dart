@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:binder_manager/core/database/user_database.dart';
 import 'package:binder_manager/core/database/tables/deck_tables.dart';
+import 'package:binder_manager/core/models/binder_position.dart';
 import 'package:binder_manager/core/models/card_identity.dart';
+import 'package:binder_manager/core/models/ordering.dart';
 
 void main() {
   late UserDatabase db;
@@ -140,6 +142,95 @@ void main() {
         () => db.into(db.deckEntries).insert(makeEntry(deckId: 'nope')),
         throwsA(isA<SqliteException>()),
       );
+    });
+  });
+
+  group('binders, binder_slots, snapshots (v2 tables, fresh create)', () {
+    final now = DateTime.utc(2026, 7, 4);
+
+    BindersCompanion makeBinder({String id = 'binder-1'}) =>
+        BindersCompanion.insert(
+          id: id,
+          name: 'Trade binder',
+          query: 'unused:true usd>5',
+          priorityIndex: 0,
+          layoutRows: 3,
+          layoutCols: 3,
+          pageCount: 20,
+          createdAt: now,
+          updatedAt: now,
+        );
+
+    BinderSlotsCompanion makeSlot({
+      String id = 'slot-1',
+      String binderId = 'binder-1',
+    }) =>
+        BinderSlotsCompanion.insert(
+          id: id,
+          binderId: binderId,
+          scryfallId: 'bolt-1',
+          finish: Finish.foil,
+          quantity: 4,
+          page: 3,
+          side: PageSide.back,
+          pocket: 5,
+          createdAt: now,
+          updatedAt: now,
+        );
+
+    test('binder round-trips with D6 defaults', () async {
+      await db.into(db.binders).insert(makeBinder());
+
+      final binder = await db.select(db.binders).getSingle();
+      expect(binder.query, 'unused:true usd>5');
+      expect(binder.doubleSided, isTrue);
+      expect(binder.groupBy, isNull);
+      expect(binder.sortBy, BinderAxis.price);
+      expect(binder.sortDir, SortDirection.desc);
+      expect(binder.isVirtual, isFalse);
+    });
+
+    test('slot round-trips exact position and enums', () async {
+      await db.into(db.binders).insert(makeBinder());
+      await db.into(db.binderSlots).insert(makeSlot());
+
+      final slot = await db.select(db.binderSlots).getSingle();
+      expect(slot.finish, Finish.foil);
+      expect(slot.page, 3);
+      expect(slot.side, PageSide.back);
+      expect(slot.pocket, 5);
+      expect(slot.isPinned, isFalse);
+    });
+
+    test('deleting a binder cascades to its slots', () async {
+      await db.into(db.binders).insert(makeBinder());
+      await db.into(db.binderSlots).insert(makeSlot(id: 's1'));
+      await db.into(db.binderSlots).insert(makeSlot(id: 's2'));
+
+      await (db.delete(db.binders)..where((b) => b.id.equals('binder-1')))
+          .go();
+
+      expect(await db.select(db.binderSlots).get(), isEmpty);
+    });
+
+    test('slot referencing a missing binder throws', () async {
+      expect(
+        () => db.into(db.binderSlots).insert(makeSlot(binderId: 'nope')),
+        throwsA(isA<SqliteException>()),
+      );
+    });
+
+    test('snapshot round-trips', () async {
+      await db.into(db.snapshots).insert(SnapshotsCompanion.insert(
+            id: 'snap-1',
+            triggerLabel: 'Price refresh',
+            state: '{"binders":[]}',
+            createdAt: now,
+          ));
+
+      final snapshot = await db.select(db.snapshots).getSingle();
+      expect(snapshot.triggerLabel, 'Price refresh');
+      expect(snapshot.state, '{"binders":[]}');
     });
   });
 }

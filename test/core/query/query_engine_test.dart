@@ -6,6 +6,7 @@ import 'package:binder_manager/core/database/corpus_database.dart';
 import 'package:binder_manager/core/database/tables/deck_tables.dart';
 import 'package:binder_manager/core/database/user_database.dart';
 import 'package:binder_manager/core/models/card_identity.dart';
+import 'package:binder_manager/core/models/ordering.dart';
 import 'package:binder_manager/core/query/query_engine.dart';
 
 /// Creates a [CardsCompanion] with sensible defaults so tests only need to
@@ -389,6 +390,118 @@ void main() {
 
       expect(result.isSuccess, isTrue);
       expect(result.cards, isEmpty);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // search() — ORDER BY
+  // ---------------------------------------------------------------------------
+
+  group('search() with order', () {
+    // Base corpus: Jace $30 mythic wwk · Tarmogoyf $15 mythic mh2 ·
+    // Bolt $2.50 common lea · Helix $1 uncommon rav · Forest $0.10 common lea.
+    setUp(() async {
+      // Null price: must sort as $0, not disappear or crash.
+      await db.into(db.cards).insert(_makeCard(
+            scryfallId: 'vision-1',
+            name: 'Ancestral Vision',
+            typeLine: 'Instant',
+            priceUsd: null,
+          ));
+      // Same set, numeric-vs-text collector numbers: "2" must precede "10".
+      await db.into(db.cards).insert(_makeCard(
+            scryfallId: 'num-b',
+            name: 'Number Ten',
+            typeLine: 'Sorcery',
+            setCode: 'num',
+            collectorNumber: '10',
+            priceUsd: null,
+          ));
+      await db.into(db.cards).insert(_makeCard(
+            scryfallId: 'num-a',
+            name: 'Number Two',
+            typeLine: 'Sorcery',
+            setCode: 'num',
+            collectorNumber: '2',
+            priceUsd: null,
+          ));
+    });
+
+    test('price desc orders the whole result set', () async {
+      final result = await engine.search(
+        'usd>0',
+        order: const QueryOrder(OrderField.price, SortDirection.desc),
+      );
+      expect(result.cards.map((c) => c.name).toList(), [
+        'Jace, the Mind Sculptor',
+        'Tarmogoyf',
+        'Lightning Bolt',
+        'Lightning Helix',
+        'Forest',
+      ]);
+    });
+
+    test('price asc treats null price as zero', () async {
+      final result = await engine.search(
+        't:instant',
+        order: const QueryOrder(OrderField.price, SortDirection.asc),
+      );
+      expect(result.cards.map((c) => c.name).toList(), [
+        'Ancestral Vision', // null → 0
+        'Lightning Helix',
+        'Lightning Bolt',
+      ]);
+    });
+
+    test('name asc', () async {
+      final result = await engine.search(
+        't:instant',
+        order: const QueryOrder(OrderField.name, SortDirection.asc),
+      );
+      expect(result.cards.map((c) => c.name).toList(), [
+        'Ancestral Vision',
+        'Lightning Bolt',
+        'Lightning Helix',
+      ]);
+    });
+
+    test('rarity asc ranks mythic first, ties broken by scryfall id',
+        () async {
+      final result = await engine.search(
+        'usd>0',
+        order: const QueryOrder(OrderField.rarity, SortDirection.asc),
+      );
+      expect(result.cards.map((c) => c.scryfallId).toList(), [
+        'goyf-1', // mythic, id tie-break
+        'jace-1', // mythic
+        'helix-1', // uncommon
+        'bolt-1', // common, id tie-break
+        'forest-1', // common
+      ]);
+    });
+
+    test('set order compares collector numbers numerically', () async {
+      final result = await engine.search(
+        's:num',
+        order: const QueryOrder(OrderField.setCode, SortDirection.asc),
+      );
+      expect(result.cards.map((c) => c.name).toList(), [
+        'Number Two', // collector 2
+        'Number Ten', // collector 10 — text compare would put it first
+      ]);
+    });
+
+    test('ordering applies before pagination, so pages are true slices',
+        () async {
+      final page = await engine.search(
+        'usd>0',
+        limit: 2,
+        offset: 2,
+        order: const QueryOrder(OrderField.price, SortDirection.desc),
+      );
+      expect(page.cards.map((c) => c.name).toList(),
+          ['Lightning Bolt', 'Lightning Helix']);
+      expect(page.totalCount, 5);
     });
   });
 }

@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/binder_editor/binder_editor_screen.dart';
 import '../features/binders_list/binders_list_screen.dart';
+import '../features/change_review/change_review_screen.dart';
 import '../features/collection_import/collection_import_screen.dart';
 import '../features/collection_search/collection_search_screen.dart';
 import '../features/decklist_import/decklist_import_screen.dart';
@@ -11,6 +13,7 @@ import '../features/onboarding/onboarding_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../shared/providers/corpus_provider.dart';
+import '../shared/widgets/pending_changes_banner.dart';
 
 /// Paths that live inside the shell (order must match AppShell._destinations).
 const _shellPaths = ['/binders', '/collection', '/decks', '/settings'];
@@ -47,12 +50,38 @@ GoRouter buildRouter(Ref ref) {
       ShellRoute(
         builder: (context, state, child) {
           final index = _indexFromLocation(state.matchedLocation);
-          return AppShell(currentIndex: index, child: child);
+          return AppShell(
+            currentIndex: index,
+            child: PendingChangesScope(
+              location: state.matchedLocation,
+              child: child,
+            ),
+          );
         },
         routes: [
           GoRoute(
             path: '/binders',
             builder: (_, _) => const BindersListScreen(),
+            routes: [
+              // 'new' must precede ':id/edit' or it would match as an id.
+              GoRoute(
+                path: 'new',
+                builder: (_, _) => const BinderEditorScreen(),
+              ),
+              // Bare '/binders/:id' is reserved for the Phase 5
+              // flip-through view (§9).
+              GoRoute(
+                path: ':id/edit',
+                builder: (_, state) => BinderEditorScreen(
+                  binderId: state.pathParameters['id']!,
+                ),
+              ),
+            ],
+          ),
+          // The universal D7 gate — every staged diff routes here (§10).
+          GoRoute(
+            path: '/changes',
+            builder: (_, _) => const ChangeReviewScreen(),
           ),
           GoRoute(
             path: '/collection',
