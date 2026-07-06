@@ -71,6 +71,7 @@ limits mid-task, losing context. To make every session resumable:
   worktrees, known-failing tests, next command to run).
 - When a phase completes, fold anything durable into the next phase's
   handoff doc; the status doc for a finished phase stops being updated.
+  The project README should also be updated with current project status.
 
 ## Build & Test
 
