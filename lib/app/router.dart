@@ -13,6 +13,7 @@ import '../features/onboarding/onboarding_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../shared/providers/corpus_provider.dart';
+import '../shared/widgets/pending_changes_banner.dart';
 
 /// Paths that live inside the shell (order must match AppShell._destinations).
 const _shellPaths = ['/binders', '/collection', '/decks', '/settings'];
@@ -49,7 +50,13 @@ GoRouter buildRouter(Ref ref) {
       ShellRoute(
         builder: (context, state, child) {
           final index = _indexFromLocation(state.matchedLocation);
-          return AppShell(currentIndex: index, child: child);
+          return AppShell(
+            currentIndex: index,
+            child: PendingChangesScope(
+              location: state.matchedLocation,
+              child: child,
+            ),
+          );
         },
         routes: [
           GoRoute(

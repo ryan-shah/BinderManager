@@ -3,8 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:binder_manager/app/corpus_refresh_listener.dart';
+import 'package:binder_manager/core/models/binder_diff.dart';
+import 'package:binder_manager/shared/providers/binder_providers.dart';
 import 'package:binder_manager/shared/providers/corpus_provider.dart';
 import 'package:binder_manager/shared/providers/search_provider.dart';
+
+import '../helpers/fake_binder_change_stager.dart';
 
 class FakeImportNotifier extends StateNotifier<CorpusImportState>
     implements CorpusImportNotifier {
@@ -37,23 +41,27 @@ class FakeSearchNotifier extends StateNotifier<SearchState>
 void main() {
   late FakeImportNotifier importNotifier;
   late FakeSearchNotifier searchNotifier;
+  late FakeBinderChangeStager stager;
 
   Future<void> pumpListener(WidgetTester tester) async {
     importNotifier = FakeImportNotifier();
     searchNotifier = FakeSearchNotifier();
+    stager = FakeBinderChangeStager();
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           corpusImportProvider.overrideWith((_) => importNotifier),
           searchProvider.overrideWith((_) => searchNotifier),
+          binderChangeStagerProvider.overrideWithValue(stager),
         ],
         child: const CorpusRefreshListener(child: SizedBox()),
       ),
     );
   }
 
-  testWidgets('refreshes search when an import completes', (tester) async {
+  testWidgets('refreshes search and stages a price-refresh diff when an '
+      'import completes', (tester) async {
     await pumpListener(tester);
 
     importNotifier.emit(const CorpusImportState(
@@ -62,6 +70,7 @@ void main() {
     ));
     await tester.pump();
     expect(searchNotifier.refreshCalls, 0);
+    expect(stager.triggers, isEmpty);
 
     importNotifier.emit(const CorpusImportState(
       phase: 'complete (5000 cards)',
@@ -70,6 +79,7 @@ void main() {
     ));
     await tester.pump();
     expect(searchNotifier.refreshCalls, 1);
+    expect(stager.triggers, [ChangeTrigger.priceRefresh]);
   });
 
   testWidgets('does not refresh on errors or repeated complete states',
@@ -98,5 +108,6 @@ void main() {
     ));
     await tester.pump();
     expect(searchNotifier.refreshCalls, 1);
+    expect(stager.triggers, [ChangeTrigger.priceRefresh]);
   });
 }

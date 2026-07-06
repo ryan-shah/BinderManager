@@ -10,7 +10,10 @@ import 'package:binder_manager/core/database/tables/deck_tables.dart';
 import 'package:binder_manager/core/database/user_database.dart';
 import 'package:binder_manager/core/decks/deck_repository.dart';
 import 'package:binder_manager/features/decks/deck_detail_screen.dart';
+import 'package:binder_manager/shared/providers/binder_providers.dart';
 import 'package:binder_manager/shared/providers/deck_providers.dart';
+
+import '../../helpers/fake_binder_change_stager.dart';
 
 final _t = DateTime.utc(2026, 7, 1);
 
@@ -129,9 +132,11 @@ Card makeCard({
 
 void main() {
   late FakeDeckRepository repository;
+  late FakeBinderChangeStager stager;
 
   setUp(() {
     repository = FakeDeckRepository();
+    stager = FakeBinderChangeStager();
   });
 
   Future<void> pumpDetail(
@@ -169,6 +174,7 @@ void main() {
           reservationProvider.overrideWith((_) => Stream.value(summary)),
           deckCardsProvider.overrideWith((_, _) async => cards),
           printingsOfOracleProvider.overrideWith((_, _) async => printings),
+          binderChangeStagerProvider.overrideWithValue(stager),
         ],
         child: MaterialApp.router(
           routerConfig: router,

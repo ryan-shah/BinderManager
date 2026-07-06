@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +9,8 @@ import '../../core/database/corpus_database.dart';
 import '../../core/database/tables/deck_tables.dart';
 import '../../core/database/user_database.dart';
 import '../../core/decks/deck_repository.dart';
+import '../../core/models/binder_diff.dart';
+import '../../shared/providers/binder_providers.dart';
 import '../../shared/providers/deck_providers.dart';
 
 /// Deck detail (UI_COMPONENTS §5): header with flags and delete, sectioned
@@ -48,6 +52,13 @@ class _DeckDetailView extends ConsumerWidget {
   // Actions
   // ---------------------------------------------------------------------------
 
+  /// Deck edits change reservations — a D7 change event (deck change).
+  void _stageDeckChange(WidgetRef ref) {
+    unawaited(
+      ref.read(binderChangeStagerProvider).stage(ChangeTrigger.deckChange),
+    );
+  }
+
   /// D13 correction path: re-point an entry at another printing of the
   /// same card (decks often run nicer versions than cheapest-first).
   Future<void> _changePrinting(
@@ -68,6 +79,7 @@ class _DeckDetailView extends ConsumerWidget {
     await ref
         .read(deckRepositoryProvider)
         .setEntryPrinting(entry.id, picked.scryfallId);
+    _stageDeckChange(ref);
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
@@ -93,6 +105,7 @@ class _DeckDetailView extends ConsumerWidget {
     );
     if (confirmed != true || !context.mounted) return;
     await ref.read(deckRepositoryProvider).deleteDeck(detail.deck.id);
+    _stageDeckChange(ref);
     if (context.mounted) context.go('/decks');
   }
 
@@ -176,7 +189,10 @@ class _DeckDetailView extends ConsumerWidget {
                 child: _LabeledSwitch(
                   label: 'Assembled',
                   value: deck.isAssembled,
-                  onChanged: (v) => repository.setDeckAssembled(deck.id, v),
+                  onChanged: (v) async {
+                    await repository.setDeckAssembled(deck.id, v);
+                    _stageDeckChange(ref);
+                  },
                 ),
               ),
               const SizedBox(width: AppSpacing.lg),
@@ -184,7 +200,10 @@ class _DeckDetailView extends ConsumerWidget {
                 child: _LabeledSwitch(
                   label: 'Shared',
                   value: deck.isShared,
-                  onChanged: (v) => repository.setDeckShared(deck.id, v),
+                  onChanged: (v) async {
+                    await repository.setDeckShared(deck.id, v);
+                    _stageDeckChange(ref);
+                  },
                 ),
               ),
             ],
@@ -218,8 +237,10 @@ class _DeckDetailView extends ConsumerWidget {
                 reserved: deck.isAssembled &&
                     section != DeckSection.maybeboard &&
                     (reservations?.reservedOf(entry.scryfallId) ?? 0) > 0,
-                onSharedChanged: (v) =>
-                    repository.setEntryShared(entry.id, v),
+                onSharedChanged: (v) async {
+                  await repository.setEntryShared(entry.id, v);
+                  _stageDeckChange(ref);
+                },
                 onChangePrinting: cards[entry.scryfallId] == null
                     ? null
                     : () => _changePrinting(
@@ -246,8 +267,10 @@ class _DeckDetailView extends ConsumerWidget {
                     entry: entry,
                     card: cards[entry.scryfallId],
                     reserved: false,
-                    onSharedChanged: (v) =>
-                        repository.setEntryShared(entry.id, v),
+                    onSharedChanged: (v) async {
+                      await repository.setEntryShared(entry.id, v);
+                      _stageDeckChange(ref);
+                    },
                     onChangePrinting: cards[entry.scryfallId] == null
                         ? null
                         : () => _changePrinting(

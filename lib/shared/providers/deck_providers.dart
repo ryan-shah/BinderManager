@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -11,7 +12,9 @@ import '../../core/database/corpus_database.dart';
 import '../../core/database/user_database.dart';
 import '../../core/decks/deck_repository.dart';
 import '../../core/import/decklist_parser.dart';
+import '../../core/models/binder_diff.dart';
 import '../../core/models/card_identity.dart';
+import 'binder_providers.dart';
 import 'corpus_provider.dart';
 import 'search_provider.dart';
 import 'user_database_provider.dart';
@@ -635,6 +638,12 @@ final deckImportProvider =
     DecklistParser(ref.watch(corpusDatabaseProvider)),
     ref.watch(deckRepositoryProvider),
     ref.watch(userDatabaseProvider),
-    onCommitted: () => ref.read(searchProvider.notifier).refresh(),
+    onCommitted: () {
+      ref.read(searchProvider.notifier).refresh();
+      // A deck commit changes reservations — a D7 change event.
+      unawaited(
+        ref.read(binderChangeStagerProvider).stage(ChangeTrigger.deckChange),
+      );
+    },
   );
 });
