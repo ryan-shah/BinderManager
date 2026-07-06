@@ -1,0 +1,15 @@
+Name,Set code,Set name,Collector number,Foil,Rarity,Quantity,ManaBox ID,Scryfall ID,Purchase price,Misprint,Altered,Condition,Language,Purchase price currency
+Mystical Tutor,dmr,Dominaria Remastered,421,normal,rare,2,1,000a5154-90ba-459e-b122-d6893dfdb56f,10.00,false,false,near_mint,en,USD
+Mystical Tutor,dmr,Dominaria Remastered,421,foil,rare,1,2,000a5154-90ba-459e-b122-d6893dfdb56f,20.00,false,false,near_mint,en,USD
+Birds of Paradise,sld,Secret Lair Drop,176,normal,rare,1,3,0003aa31-d42e-4972-9fb9-086aefe29a2c,12.00,false,false,near_mint,en,USD
+"Narset, Parter of Veils",sld,Secret Lair Drop,1141,normal,rare,1,4,000db964-719d-4532-9225-35658565b35d,15.00,false,false,near_mint,en,USD
+Temporal Manipulation,sld,Secret Lair Drop,1169,normal,mythic,1,5,0016ea50-4f77-4814-a505-8067ecb177cc,14.00,false,false,near_mint,en,USD
+Invisible Stalker,isd,Innistrad,60,foil,uncommon,1,6,0013620d-8e17-4246-86bf-71eafd51b806,9.00,false,false,near_mint,en,USD
+Searing Blaze,plst,The List,WWK-90,normal,common,1,7,0008098c-2985-493f-bc37-0a8fb96cad65,0.50,false,false,near_mint,en,USD
+Mortify,ltc,Tales of Middle-earth Commander,269,normal,uncommon,1,8,000d913b-adc4-4075-83d9-4a510280c91e,0.25,false,false,near_mint,en,USD
+Fresh Meat,nph,New Phyrexia,109,normal,rare,1,9,000ce65b-5347-4a88-81af-be9053e4d3f3,0.25,false,false,near_mint,en,USD
+Charge,dom,Dominaria,10,normal,common,1,10,000eded9-854c-408a-aadf-c26209e27432,0.10,false,false,near_mint,en,USD
+Afflict,ody,Odyssey,115,normal,common,1,11,0012621b-c0e1-48d6-99b9-ecca4763d748,0.10,false,false,near_mint,en,USD
+Run Away Together,woc,Wilds of Eldraine Commander,108,normal,common,1,12,000e88ab-f673-4822-bccb-a744f61060ef,0.25,false,false,near_mint,en,USD
+Nocturnal Raid,mir,Mirage,132,normal,uncommon,1,13,0015fee8-068a-421e-9143-bcb575371f9a,0.20,false,false,near_mint,en,USD
+Altar's Reap,plst,The List,DDR-37,normal,common,1,14,00108a1c-e620-4124-9b31-3bb3ff2a0407,0.20,false,false,near_mint,en,USD
