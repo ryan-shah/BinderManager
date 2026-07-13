@@ -13,3 +13,16 @@ final userDatabaseProvider = Provider<UserDatabase>((ref) {
   ref.onDispose(() => database.close());
   return database;
 });
+
+/// Streams the total owned quantity per scryfallId, summed across all finishes
+/// and provenances. Updates automatically whenever the stacks table changes.
+final ownedQuantitiesProvider = StreamProvider<Map<String, int>>((ref) {
+  final userDb = ref.watch(userDatabaseProvider);
+  return userDb.select(userDb.stacks).watch().map((stacks) {
+    final totals = <String, int>{};
+    for (final stack in stacks) {
+      totals[stack.scryfallId] = (totals[stack.scryfallId] ?? 0) + stack.quantity;
+    }
+    return totals;
+  });
+});

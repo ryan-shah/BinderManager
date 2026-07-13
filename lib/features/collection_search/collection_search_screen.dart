@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/responsive.dart';
 import '../../app/theme.dart';
 import '../../shared/providers/search_provider.dart';
+import '../../shared/providers/user_database_provider.dart';
 import '../../shared/widgets/applied_filter_chips.dart';
 import '../../shared/widgets/card_tile.dart';
 import '../../shared/widgets/query_filter_builder.dart';
@@ -228,6 +229,8 @@ class _CollectionSearchScreenState
         itemCount: state.results.length,
         itemBuilder: (context, index) {
           final card = state.results[index];
+          final quantities =
+              ref.watch(ownedQuantitiesProvider).valueOrNull ?? {};
           return CardTile(
             name: card.name,
             imageUri: card.imageUriSmall,
@@ -237,6 +240,7 @@ class _CollectionSearchScreenState
             priceUsd: card.priceUsd,
             finishes: card.finishes,
             compact: true,
+            quantity: quantities[card.scryfallId],
             onTap: () {
               // Card detail navigation — Phase 3
             },
