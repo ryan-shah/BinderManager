@@ -252,9 +252,11 @@ class CollectionImportNotifier extends StateNotifier<CollectionImportState> {
     );
   }
 
-  /// Batch-resolves card names from the corpus for diff remove labels.
-  Future<Map<String, String>> _resolveNames(List<String> scryfallIds) async {
-    final names = <String, String>{};
+  /// Batch-resolves card metadata from the corpus for diff remove labels.
+  Future<Map<String, ({String name, String setCode, String collectorNumber})>>
+      _resolveNames(List<String> scryfallIds) async {
+    final result =
+        <String, ({String name, String setCode, String collectorNumber})>{};
     const chunkSize = ManaBoxParser.lookupChunkSize;
     for (var i = 0; i < scryfallIds.length; i += chunkSize) {
       final chunk = scryfallIds.sublist(
@@ -265,10 +267,14 @@ class CollectionImportNotifier extends StateNotifier<CollectionImportState> {
             ..where((c) => c.scryfallId.isIn(chunk)))
           .get();
       for (final card in cards) {
-        names[card.scryfallId] = card.name;
+        result[card.scryfallId] = (
+          name: card.name,
+          setCode: card.setCode,
+          collectorNumber: card.collectorNumber,
+        );
       }
     }
-    return names;
+    return result;
   }
 
   Future<int> _manaBoxStackCount() async {

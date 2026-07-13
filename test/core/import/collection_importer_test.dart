@@ -12,8 +12,7 @@ const boltId = 'bolt-1';
 const helixId = 'helix-1';
 const goyfId = 'goyf-1';
 
-/// Builds a corpus [Card] data class (only the name matters here — it feeds
-/// [DiffEntry.cardName]).
+/// Builds a corpus [Card] data class for test use.
 Card makeCorpusCard({required String scryfallId, required String name}) {
   return Card(
     scryfallId: scryfallId,
@@ -282,7 +281,9 @@ void main() {
           makeRow(scryfallId: helixId, quantity: 4, name: 'Lightning Helix'),
         ],
         ImportMode.replace,
-        resolveNames: (ids) async => {goyfId: 'Tarmogoyf'},
+        resolveNames: (ids) async => {
+          goyfId: (name: 'Tarmogoyf', setCode: 'mh2', collectorNumber: '204'),
+        },
       );
 
       // helix counts as an add: the deck-import stack is invisible here.

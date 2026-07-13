@@ -218,7 +218,7 @@ void main() {
       final unavailable = result.unmatched
           .singleWhere((u) => u.reason == UnmatchReason.finishUnavailable);
       expect(unavailable.resolvedIdentity,
-          const CardIdentity(boltId, Finish.foil));
+          const CardIdentity(helixId, Finish.etched));
 
       final noId = result.unmatched
           .singleWhere((u) => u.reason == UnmatchReason.missingScryfallId);
@@ -314,6 +314,23 @@ void main() {
       expect(result.unmatched.single.reason, UnmatchReason.finishUnavailable);
       expect(result.unmatched.single.resolvedIdentity,
           const CardIdentity(helixId, Finish.etched));
+    });
+
+    test('coerces finish when printing only has one available finish', () async {
+      // Bolt is nonfoil-only; a foil row should be accepted as nonfoil.
+      final csv = [
+        _header,
+        _row(scryfallId: boltId, foil: 'foil', quantity: '1'),
+        _row(scryfallId: boltId, foil: 'normal', quantity: '2'),
+      ].join('\n');
+
+      final result = await parser.parseString(csv);
+
+      expect(result.unmatched, isEmpty);
+      expect(result.matched, hasLength(1));
+      final bolt = result.matched.single;
+      expect(bolt.identity, const CardIdentity(boltId, Finish.nonfoil));
+      expect(bolt.quantity, 3);
     });
 
     test('rejects unrecognised Foil values', () async {

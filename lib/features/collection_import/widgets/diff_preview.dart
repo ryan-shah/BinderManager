@@ -79,6 +79,11 @@ class _DiffSection extends StatelessWidget {
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
+                    '${entry.setCode} #${entry.collectorNumber}',
+                    style: AppTypography.tag,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
                     entry.identity.finish.name,
                     style: AppTypography.tag,
                   ),

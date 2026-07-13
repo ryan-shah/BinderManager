@@ -141,6 +141,8 @@ CollectionImportState reviewState({
           qtyBefore: 0,
           qtyAfter: 4,
           cardName: 'Lightning Bolt',
+          setCode: 'lea',
+          collectorNumber: '161',
         ),
       ],
       removes: [],

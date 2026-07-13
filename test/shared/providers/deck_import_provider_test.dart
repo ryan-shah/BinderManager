@@ -170,11 +170,9 @@ void main() {
       expect(planned[2].quantity, 1);
       expect(planned[2].isUnowned, isTrue);
 
-      // The remainder shows up in the unowned prompt.
-      expect(state.unowned, hasLength(1));
-      expect(state.unowned.single.card.scryfallId, 'bolt-2x2');
-      expect(state.unowned.single.missing, 1);
-      expect(state.canCommit, isFalse);
+      // Shortfalls are deferred to commit — canCommit is true here.
+      expect(state.unowned, isEmpty);
+      expect(state.canCommit, isTrue);
     });
 
     test('fully owned allocation needs no unowned prompt', () async {
@@ -188,6 +186,19 @@ void main() {
       expect(state.lines.single.planned.single.card.scryfallId, 'bolt-2x2');
       expect(state.lines.single.planned.single.quantity, 4);
       expect(state.canCommit, isTrue);
+    });
+
+    test('lines with no owned copies stay as pending picks', () async {
+      // User owns no Lightning Bolt printings at all.
+      await notifier.parseText('4 Lightning Bolt');
+      await notifier.chooseFidelity(FidelityMode.cheapestFirst);
+
+      final state = notifier.state;
+      expect(state.needsFidelity, isFalse);
+      expect(state.fidelityMode, FidelityMode.cheapestFirst);
+      expect(state.lines.single.isPendingPick, isTrue);
+      expect(state.lines.single.planned, isEmpty);
+      expect(state.canCommit, isFalse);
     });
 
     test('exact lines claim owned copies before fidelity lines', () async {
@@ -231,9 +242,10 @@ void main() {
       expect(state.lines.single.planned.single.quantity, 4);
       expect(state.unowned, isEmpty);
       expect(state.canCommit, isTrue);
+      expect(state.sourceText, '4 Lightning Bolt (M10) 146');
     });
 
-    test('picking an unowned printing triggers the unowned prompt', () async {
+    test('picking an unowned printing is detected on commit', () async {
       await notifier.parseText('4 Lightning Bolt');
       await notifier.chooseFidelity(FidelityMode.pickManually);
 
@@ -243,15 +255,22 @@ void main() {
       notifier.pickPrinting(0, candidates.first);
       await pumpEventQueue();
 
+      expect(notifier.state.unowned, isEmpty);
+      expect(notifier.state.canCommit, isTrue);
+
+      await notifier.commit();
       expect(notifier.state.unowned, hasLength(1));
       expect(notifier.state.unowned.single.missing, 4);
     });
   });
 
   group('unowned prompt', () {
-    test('exact line with no stacks prompts with the full quantity',
-        () async {
+    test('commit detects shortfalls for unowned cards', () async {
       await notifier.parseText('3 Opt (XLN) 65');
+      expect(notifier.state.unowned, isEmpty);
+      expect(notifier.state.canCommit, isTrue);
+
+      await notifier.commit();
 
       expect(notifier.state.unowned, hasLength(1));
       expect(notifier.state.unowned.single.card.scryfallId, 'opt-xln');
@@ -261,6 +280,7 @@ void main() {
     test('partial ownership prompts with the shortfall only', () async {
       await addStack('opt-xln', 1);
       await notifier.parseText('3 Opt (XLN) 65');
+      await notifier.commit();
 
       expect(notifier.state.unowned.single.missing, 2);
     });
@@ -269,6 +289,7 @@ void main() {
         () async {
       await addStack('opt-xln', 1);
       await notifier.parseText('3 Opt (XLN) 65');
+      await notifier.commit();
       await notifier.resolveUnowned(UnownedChoice.importUnowned);
 
       final state = notifier.state;
@@ -279,31 +300,33 @@ void main() {
       expect(planned[0].isUnowned, isFalse);
       expect(planned[1].quantity, 2);
       expect(planned[1].isUnowned, isTrue);
-      expect(state.canCommit, isTrue);
+      expect(state.phase, DeckImportPhase.done);
     });
 
     test('addToCollection inserts deck-import stacks and clears marks',
         () async {
       await notifier.parseText('3 Opt (XLN) 65');
+      await notifier.commit();
       await notifier.resolveUnowned(UnownedChoice.addToCollection);
 
       final stacks = await user.select(user.stacks).get();
-      expect(stacks, hasLength(1));
-      expect(stacks.single.scryfallId, 'opt-xln');
-      expect(stacks.single.quantity, 3);
-      expect(stacks.single.finish, Finish.nonfoil);
-      expect(stacks.single.provenance, 'deck-import');
+      expect(stacks.any((s) =>
+          s.scryfallId == 'opt-xln' &&
+          s.quantity == 3 &&
+          s.finish == Finish.nonfoil &&
+          s.provenance == 'deck-import'), isTrue);
 
       final state = notifier.state;
       expect(state.unowned, isEmpty);
       expect(state.lines.single.planned.every((p) => !p.isUnowned), isTrue);
-      expect(state.canCommit, isTrue);
+      expect(state.phase, DeckImportPhase.done);
     });
 
     test('addToCollection upserts onto an existing deck-import stack',
         () async {
       await addStack('opt-xln', 1, provenance: 'deck-import');
       await notifier.parseText('3 Opt (XLN) 65');
+      await notifier.commit();
 
       expect(notifier.state.unowned.single.missing, 2);
       await notifier.resolveUnowned(UnownedChoice.addToCollection);
@@ -317,6 +340,7 @@ void main() {
         () async {
       notifier.setMetadata(name: 'Burn');
       await notifier.parseText('3 Opt (XLN) 65');
+      await notifier.commit();
       await notifier.resolveUnowned(UnownedChoice.backOut);
 
       final state = notifier.state;
@@ -372,8 +396,8 @@ void main() {
 
     test('unowned marks survive into deck entries', () async {
       await notifier.parseText('3 Opt (XLN) 65');
-      await notifier.resolveUnowned(UnownedChoice.importUnowned);
       await notifier.commit();
+      await notifier.resolveUnowned(UnownedChoice.importUnowned);
 
       final entry = await user.select(user.deckEntries).getSingle();
       expect(entry.isUnowned, isTrue);
@@ -413,6 +437,22 @@ void main() {
       expect(notifier.state.lines.single.shared, isFalse);
       // Out-of-range indexes are ignored.
       notifier.toggleEntryShared(5);
+    });
+
+    test('setMetadata shared flips all loaded lines', () async {
+      await addStack('opt-xln', 4);
+      await addStack('bolt-m10', 4);
+
+      await notifier.parseText('3 Opt (XLN) 65\n4 Lightning Bolt (M10) 146');
+      expect(notifier.state.lines.every((l) => !l.shared), isTrue);
+
+      notifier.setMetadata(shared: true);
+      expect(notifier.state.lines.every((l) => l.shared), isTrue);
+      expect(notifier.state.shared, isTrue);
+
+      notifier.setMetadata(shared: false);
+      expect(notifier.state.lines.every((l) => !l.shared), isTrue);
+      expect(notifier.state.shared, isFalse);
     });
 
     test('loadFile decodes bytes and defaults the deck name', () async {

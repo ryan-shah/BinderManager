@@ -233,6 +233,13 @@ class _DecklistImportScreenState extends ConsumerState<DecklistImportScreen> {
         notifier.reset();
         context.go('/decks/$deckId');
       }
+      // Sync the text field when the provider updates source text
+      // (e.g. after a printing pick). Setting controller.text does
+      // NOT fire TextField.onChanged, so this won't re-trigger parsing.
+      if (next.sourceText != (previous?.sourceText ?? '') &&
+          next.sourceText != _textController.text) {
+        _textController.text = next.sourceText;
+      }
     });
 
     final desktop = layoutModeOf(context) == LayoutMode.desktop;
@@ -536,8 +543,7 @@ class _DecklistImportScreenState extends ConsumerState<DecklistImportScreen> {
             ),
             const SizedBox(width: AppSpacing.sm),
           ],
-          if (line.isPendingPick &&
-              state.fidelityMode == FidelityMode.pickManually) ...[
+          if (line.isPendingPick && state.fidelityMode != null) ...[
             TextButton(
               onPressed: () => _showPrintingPicker(index, line),
               child: const Text('Pick'),
@@ -641,7 +647,11 @@ class _PromptContent extends StatelessWidget {
         ],
         if (detail != null) ...[
           const SizedBox(height: AppSpacing.sm),
-          Text(detail!, style: AppTypography.meta),
+          Flexible(
+            child: SingleChildScrollView(
+              child: Text(detail!, style: AppTypography.meta),
+            ),
+          ),
         ],
         const SizedBox(height: AppSpacing.lg),
         for (final action in actions)
@@ -668,6 +678,12 @@ class _PromptContent extends StatelessWidget {
         ),
       );
     }
-    return content;
+    // Constrain height so the detail list scrolls instead of overflowing.
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.7,
+      ),
+      child: content,
+    );
   }
 }

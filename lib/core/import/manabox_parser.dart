@@ -289,20 +289,39 @@ class ManaBoxParser {
         ));
         continue;
       }
-      final available = card.finishes.split(',').map((f) => f.trim());
-      if (!available.contains(candidate.identity.finish.name)) {
-        unmatched.add(UnmatchedRow(
-          lineNumber: candidate.lineNumber,
-          raw: candidate.raw,
-          reason: UnmatchReason.finishUnavailable,
-          resolvedIdentity: candidate.identity,
-        ));
-        continue;
+      final availableList = card.finishes.split(',').map((f) => f.trim().toLowerCase()).toList();
+      var identity = candidate.identity;
+      if (!availableList.contains(identity.finish.name)) {
+        if (availableList.length == 1) {
+          // Single-finish printing: coerce to the only available finish rather
+          // than rejecting. ManaBox sometimes records the wrong finish for cards
+          // that only exist in one finish.
+          final coerced = Finish.tryParse(availableList.first);
+          if (coerced != null) {
+            identity = CardIdentity(identity.scryfallId, coerced);
+          } else {
+            unmatched.add(UnmatchedRow(
+              lineNumber: candidate.lineNumber,
+              raw: candidate.raw,
+              reason: UnmatchReason.finishUnavailable,
+              resolvedIdentity: candidate.identity,
+            ));
+            continue;
+          }
+        } else {
+          unmatched.add(UnmatchedRow(
+            lineNumber: candidate.lineNumber,
+            raw: candidate.raw,
+            reason: UnmatchReason.finishUnavailable,
+            resolvedIdentity: candidate.identity,
+          ));
+          continue;
+        }
       }
 
-      final prior = merged[candidate.identity];
-      merged[candidate.identity] = MatchedStackRow(
-        identity: candidate.identity,
+      final prior = merged[identity];
+      merged[identity] = MatchedStackRow(
+        identity: identity,
         quantity: (prior?.quantity ?? 0) + candidate.quantity,
         condition: prior?.condition ?? candidate.condition,
         language: prior?.language ?? candidate.language,

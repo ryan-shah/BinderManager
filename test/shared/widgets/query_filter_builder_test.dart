@@ -362,7 +362,10 @@ void main() {
   group('QueryFilterBuilder - status toggles', () {
     testWidgets('In collection switch emits have:true', (tester) async {
       String? lastQuery;
+      // Use a non-empty initial query so _parseInitialQuery resets both
+      // toggles to false, letting us test turning "In collection" on.
       await tester.pumpWidget(buildBuilder(
+        initialQuery: 'c:R',
         onQueryChanged: (q) => lastQuery = q,
       ));
 
@@ -381,7 +384,10 @@ void main() {
 
     testWidgets('Idle only switch emits unused:true', (tester) async {
       String? lastQuery;
+      // Use a non-empty initial query so _parseInitialQuery resets both
+      // toggles to false, letting us test turning "Idle only" on.
       await tester.pumpWidget(buildBuilder(
+        initialQuery: 'c:R',
         onQueryChanged: (q) => lastQuery = q,
       ));
 
