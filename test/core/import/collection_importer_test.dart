@@ -281,7 +281,9 @@ void main() {
           makeRow(scryfallId: helixId, quantity: 4, name: 'Lightning Helix'),
         ],
         ImportMode.replace,
-        resolveNames: (ids) async => {goyfId: 'Tarmogoyf'},
+        resolveNames: (ids) async => {
+          goyfId: (name: 'Tarmogoyf', setCode: 'mh2', collectorNumber: '204'),
+        },
       );
 
       // helix counts as an add: the deck-import stack is invisible here.
