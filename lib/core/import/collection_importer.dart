@@ -16,11 +16,11 @@ enum ImportMode {
   append,
 }
 
-/// Resolves card names for scryfall IDs (used to label diff removes, whose
-/// names are not carried on the stack rows). Returns a scryfallId → name map;
-/// unresolved IDs may be omitted.
-typedef NameResolver = Future<Map<String, String>> Function(
-    List<String> scryfallIds);
+/// Card metadata resolved from the corpus for removed stacks (whose info is
+/// not stored on the stack row itself). Unresolved IDs may be omitted.
+typedef NameResolver
+    = Future<Map<String, ({String name, String setCode, String collectorNumber})>>
+        Function(List<String> scryfallIds);
 
 /// One row of an [ImportDiff]: the quantity transition for a single
 /// (printing, finish) identity.
@@ -30,12 +30,16 @@ class DiffEntry {
     required this.qtyBefore,
     required this.qtyAfter,
     required this.cardName,
+    required this.setCode,
+    required this.collectorNumber,
   });
 
   final CardIdentity identity;
   final int qtyBefore;
   final int qtyAfter;
   final String cardName;
+  final String setCode;
+  final String collectorNumber;
 }
 
 /// What a commit will change, computed against ManaBox-provenance stacks
@@ -99,6 +103,8 @@ class CollectionImporter {
           qtyBefore: 0,
           qtyAfter: row.quantity,
           cardName: row.corpusCard.name,
+          setCode: row.corpusCard.setCode,
+          collectorNumber: row.corpusCard.collectorNumber,
         ));
         continue;
       }
@@ -111,6 +117,8 @@ class CollectionImporter {
           qtyBefore: current.quantity,
           qtyAfter: qtyAfter,
           cardName: row.corpusCard.name,
+          setCode: row.corpusCard.setCode,
+          collectorNumber: row.corpusCard.collectorNumber,
         ));
       }
     }
@@ -121,18 +129,22 @@ class CollectionImporter {
           .where((s) =>
               !incomingIdentities.contains(CardIdentity(s.scryfallId, s.finish)))
           .toList();
-      var names = const <String, String>{};
+      var names =
+          const <String, ({String name, String setCode, String collectorNumber})>{};
       if (removedStacks.isNotEmpty && resolveNames != null) {
         names = await resolveNames(
           removedStacks.map((s) => s.scryfallId).toSet().toList(),
         );
       }
       for (final stack in removedStacks) {
+        final info = names[stack.scryfallId];
         removes.add(DiffEntry(
           identity: CardIdentity(stack.scryfallId, stack.finish),
           qtyBefore: stack.quantity,
           qtyAfter: 0,
-          cardName: names[stack.scryfallId] ?? stack.scryfallId,
+          cardName: info?.name ?? stack.scryfallId,
+          setCode: info?.setCode ?? '',
+          collectorNumber: info?.collectorNumber ?? '',
         ));
       }
     }

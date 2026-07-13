@@ -98,8 +98,8 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
     _selectedRarities = {};
     _selectedTreatments = {};
     _oracleController = TextEditingController();
-    _idleOnly = false;
-    _inCollectionOnly = false;
+    _idleOnly = true;
+    _inCollectionOnly = true;
 
     if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
       _parseInitialQuery(widget.initialQuery!);
