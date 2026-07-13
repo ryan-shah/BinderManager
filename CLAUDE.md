@@ -53,13 +53,21 @@ bd close <id>         # Complete work
 
 ## Build & Test
 
-_Add your build and test commands here_
-
 ```bash
-# Example:
-# npm install
-# npm test
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs   # regenerate drift .g.dart files
+flutter test
 ```
+
+### When to run build_runner
+
+Run `build_runner` whenever the drift table definitions change (files under
+`lib/core/database/tables/`) or after pulling commits that changed the schema.
+The generated `.g.dart` files are committed to the repo (they are in
+`.gitignore` but force-tracked with `git add -f`) — if they fall out of sync
+with the source tables, **every test file that imports either database will
+fail to load** with "Type 'X' not found" errors. Regenerating fixes all of
+them at once.
 
 ## Architecture Overview
 
