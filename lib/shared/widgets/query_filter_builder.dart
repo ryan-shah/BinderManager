@@ -119,6 +119,11 @@ class QueryFilterBuilderState extends State<QueryFilterBuilder> {
   // ---------------------------------------------------------------------------
 
   void _parseInitialQuery(String q) {
+    // When an initial query is supplied it is the authoritative source of
+    // truth for the toggle fields — reset them so missing tokens mean "off".
+    _idleOnly = false;
+    _inCollectionOnly = false;
+
     // Extract oracle text first (quoted, may contain spaces)
     final oracleMatch = RegExp(r'o:"([^"]*)"').firstMatch(q);
     if (oracleMatch != null) {
